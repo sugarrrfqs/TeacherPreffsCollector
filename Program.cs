@@ -17,9 +17,8 @@ namespace TeacherPreffsCollector
 {
     internal static class Program
     {
-        public static TeacherPreffsEntities entities = new TeacherPreffsEntities();
+        public static TeacherPrefsEntities entities = new TeacherPrefsEntities();
         static List<Teacher> teachers = entities.Teacher.ToList();
-
 
         static async Task Main(string[] args)
         {
@@ -44,20 +43,20 @@ namespace TeacherPreffsCollector
             cts.Cancel();
         }
 
-        static string getPreffInfo (Prefference preff)
+        static string getPrefInfo (Preference pref)
         {
             string response= "";
             Discipline disc = null;
             Auditory aud = null;
 
-            disc = entities.Discipline.Single(x => x.ID == preff.DisciplineID);
+            disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
             aud = null;
-            if (preff.AuditoryID != null) aud = entities.Auditory.Single(x => x.ID == preff.AuditoryID);
+            if (pref.AuditoryID != null) aud = entities.Auditory.Single(x => x.ID == pref.AuditoryID);
 
             response += "*" + disc.Name + "*" +
                 "\nТип: " + disc.Type +
                 "\nГруппа: " + disc.Group + " (" + disc.StudentsCount + " чел.)" +
-                "\nОбщее кол-во часов в семестре: " + disc.Hours + "\n\n";
+                "\nОбщее кол-во часов в семестре: " + (Convert.ToInt32(disc.Hours) - Convert.ToInt32(disc.Hours) % 8) + "\n\n";
 
             response += "*Ваши пожелания:*";
             response += "\n*Аудитория:* ";
@@ -66,26 +65,25 @@ namespace TeacherPreffsCollector
                 "\n        Номер: " + aud.Number +
                 "\n        Вместимость: " + aud.Capacity +
                 "\n        Оборудование: " + aud.Equipment +
-                "\n        Проектор: " + aud.Projector +
-                "\n        Смарт-доска: " + aud.SmartDesc;
+                "\n        Проектор: " + aud.Projector;
             else response += "Не задана";
 
             response += "\n*Частота:* ";
-            if (preff.BCFirstWeek != null) response += $"\nКол-во часов:" +
+            if (pref.BCFirstWeek != null) response += $"\nКол-во часов:" +
                     $"\n        До смены: " +
-                    $"\n                По первым неделям - {preff.BCFirstWeek}" +
-                    $"\n                По вторым неделям - {preff.BCSecondWeek}" +
+                    $"\n                По первым неделям - {pref.BCFirstWeek}" +
+                    $"\n                По вторым неделям - {pref.BCSecondWeek}" +
                     $"\n        После смены: " +
-                    $"\n                По первым неделям - {preff.ACFirstWeek}" +
-                    $"\n                По вторым неделям - {preff.ACSecondWeek}";
+                    $"\n                По первым неделям - {pref.ACFirstWeek}" +
+                    $"\n                По вторым неделям - {pref.ACSecondWeek}";
             else response += "Не задана";
 
             response += "\n*Дни недели:* ";
-            if (preff.Weekdays != null) response += preff.Weekdays;
+            if (pref.Weekdays != null) response += pref.Weekdays;
             else response += "Не заданы";
 
             response += "\n*Время:* ";
-            if (preff.TimeBegin != null) response += preff.TimeBegin + " - " + preff.TimeEnd;
+            if (pref.TimeBegin != null) response += pref.TimeBegin + " - " + pref.TimeEnd;
             else response += "Не задано";
 
             return response;
@@ -123,7 +121,7 @@ namespace TeacherPreffsCollector
                         var messageText = message.Text;
                         var chatId = message.Chat.Id;
 
-                        Prefference preff = null;
+                        Preference pref = null;
                         Teacher tch = null;
                         Discipline disc = null;
                         Auditory aud = null;
@@ -139,23 +137,23 @@ namespace TeacherPreffsCollector
                             Console.WriteLine($"Received a '{messageText}' message in chat {chatId}.");
                             switch (cArgs[0])
                             {
-                                case "/dp":
+                                case "/disciplines":
                                     response += "Ваш список дисциплин:\n";
-                                    foreach (Prefference pf in entities.Prefference.Where(x => x.TeacherID == tch.ID).ToList())
+                                    foreach (Preference pf in entities.Preference.Where(x => x.TeacherID == tch.ID).ToList())
                                     {
                                         response += 
-                                            getPreffInfo(pf) 
-                                            + "\nИзменить пожелания: /pfQ" + pf.ID + "\n\n";
+                                            getPrefInfo(pf) 
+                                            + "\nИзменить пожелания: /preferencesQ" + pf.ID + "\n\n";
                                     }
                                     break;
 
-                                case "/pf":
+                                case "/preferences":
                                     if (cArgs.Length == 1)
                                     {
                                         response =
                                             $"Вы можете задать дни недели и время занятий \"по умолчанию\", " +
                                             $"эти значения будут применены для всех ваших дисциплин, " +
-                                            $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /dp\n\n" +
+                                            $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
                                             getTeacherInfo(tch) + 
                                             $"\n\nЧто вы хотите изменить?";
                                         ikb.Add(new[]
@@ -169,12 +167,12 @@ namespace TeacherPreffsCollector
                                         string pfID = cArgs[1];
                                         try
                                         {
-                                            preff = entities.Prefference.Single(x => x.ID.ToString() == pfID);
-                                            if (tch.ID == preff.TeacherID)
+                                            pref = entities.Preference.Single(x => x.ID.ToString() == pfID);
+                                            if (tch.ID == pref.TeacherID)
                                             {
                                                 response =
                                                     "*Вы редактируете информацию о следующей дисциплине:*\n"
-                                                    + getPreffInfo(preff)
+                                                    + getPrefInfo(pref)
                                                     + "\n\nЧто вы хотите изменить?";
                                                 ikb.Add(new[]
                                                 {
@@ -198,6 +196,11 @@ namespace TeacherPreffsCollector
                                     break;
 
                                 case "/help":
+                                    response = "Полный список команд:" +
+                                        "\n/preferences - Задать пожелания \"по умолчанию\"" +
+                                        "\n/disciplines - Получить список ваших дисциплин и пожеланий" +
+                                        "\n/logout - Выйти из аккаунта" +
+                                        "\n/help - Получить полный список команд";
                                     break;
 
                                 case "/logout":
@@ -285,7 +288,7 @@ namespace TeacherPreffsCollector
 
                     InlineKeyboardButton[] buttonRow = new InlineKeyboardButton[2];
                     List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
-                    Prefference preff = null;
+                    Preference pref = null;
                     Teacher tch = null;
                     Discipline disc = null;
                     //Auditory aud = null;
@@ -297,8 +300,8 @@ namespace TeacherPreffsCollector
                             {
                                 case "Auditory":
                                     response += callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор аудитории:*");
-                                    preff = entities.Prefference.Single(x => x.ID == pfID);
-                                    disc = entities.Discipline.Single(x => x.ID == preff.DisciplineID);
+                                    pref = entities.Preference.Single(x => x.ID == pfID);
+                                    disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
                                     foreach (var au in entities.Auditory.Where(x => x.Capacity >= disc.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList())
                                     {
                                         response += "\n*Аудитория:* \n" +
@@ -307,8 +310,7 @@ namespace TeacherPreffsCollector
                                             "Вместимость: " + au.Capacity + "\n" +
                                             "Кол-во рабочих мест (компьютеров): " + au.Workplaces + "\n" +
                                             "Оборудование: " + au.Equipment + "\n" +
-                                            "Проектор: " + au.Projector + "\n" +
-                                            "Смарт-доска: " + au.SmartDesc + "\n";
+                                            "Проектор: " + au.Projector + "\n";
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Корпус: " + au.Department + ", Номер: " + au.Number,
                                                 callbackData: $"Choose$Auditory${pfID}${au.ID}")});
                                     }
@@ -319,10 +321,17 @@ namespace TeacherPreffsCollector
                                     break;
 
                                 case "Frequency":
-                                    preff = entities.Prefference.Single(x => x.ID == pfID);
-                                    disc = entities.Discipline.Single(x => x.ID == preff.DisciplineID);
-                                    int hours = Convert.ToInt32(disc.Hours);
+                                    pref = entities.Preference.Single(x => x.ID == pfID);
+                                    disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
+                                    int hours = Convert.ToInt32(disc.Hours) - Convert.ToInt32(disc.Hours) % 8;
                                     int hBefore = 0, hAfter = 0, hPerWeek = 0, hPerFWeek = 0, hPerSWeek = 0;
+                                    int a = 0, b = 0;
+
+
+                                    hAfter = (hours - hours % 16) / 2;
+                                    if (hours % 16 < 8) hBefore = hAfter;
+                                    else hBefore = hours - hAfter;
+                                    if (disc.Type != "Лек") (hBefore, hAfter) = (hAfter, hBefore); //swap часов для практик и лаб
 
                                     response += callbackQuery.Message.Text
                                         .Replace("Выбор частоты:", "*Выбор частоты:*")
@@ -330,16 +339,10 @@ namespace TeacherPreffsCollector
                                         .Replace("Выберите распределение на первую половину семестра:", "")
                                         .Replace("Выберите распределение на вторую половину семестра:", "");
 
-                                    if (response.IndexOf("часов за семестр.") > 0) response = response.Remove(response.IndexOf("часов за семестр.") + 17, response.Length - response.IndexOf("часов за семестр.") - 17);                                    
-
+                                    if (response.IndexOf("часов за семестр.") > 0) response = response.Remove(response.IndexOf("часов за семестр.") + 17, response.Length - response.IndexOf("часов за семестр.") - 17);
+                                    
                                     if (cArgs.Length == 3)
-                                    {
-                                        hAfter = hAfter = (hours - hours % 16) / 2;
-                                        if (hours % 16 < 8) hBefore = hAfter;
-                                        else hBefore = hours - hAfter;
-
-                                        if (disc.Type != "Лек") (hBefore, hAfter) = (hAfter, hBefore); //swap часов для практик и лаб
-
+                                    {                                    
                                         response += $"\n\n*Выберите распределение на семестр:*";
 
                                         response += $"\n1. До и после смены расписания (Кол-во часов до смены: {hBefore}, Кол-во часов после смены: {hAfter})" +
@@ -359,85 +362,61 @@ namespace TeacherPreffsCollector
                                     }
 
                                     if (cArgs.Length == 4)
-                                    {                                     
+                                    {                                                      
                                         switch (cArgs[3])
                                         {
                                             case "1":
-                                                hAfter = hAfter = (hours - hours % 16) / 2;
-                                                if (hours % 16 < 8) hBefore = hAfter;
-                                                else hBefore = hours - hAfter;
                                                 hPerWeek = hBefore / 8;
-                                                if (hPerWeek % 2 != 0)
-                                                {
-                                                    hPerFWeek = hPerWeek + 1;
-                                                    hPerSWeek = hPerWeek - 1;
-                                                }
-                                                else
-                                                {
-                                                    hPerFWeek = hPerWeek;
-                                                    hPerSWeek = hPerWeek;
-                                                }
-
-                                                response += "\n\n*Выберите распределение на первую половину семестра:*" +
-                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
-                                                    $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
-                                                    $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
-                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}${hPerFWeek}-{hPerSWeek}")});
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
-                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}${hPerWeek * 2}-0")});
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
-                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}$0-{hPerWeek * 2}")});
+                                                response += "\n\n*Выберите распределение на первую половину семестра:*";
                                                 break;
 
                                             case "2":
                                                 hPerWeek = hours / 8;
-                                                if (hPerWeek % 2 != 0)
-                                                {
-                                                    hPerFWeek = hPerWeek + 1;
-                                                    hPerSWeek = hPerWeek - 1;
-                                                }
-                                                else
-                                                {
-                                                    hPerFWeek = hPerWeek;
-                                                    hPerSWeek = hPerWeek;
-                                                }
-                                                response += "\n\n*Выберите распределение на первую половину семестра:*" +
-                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
-                                                    $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
-                                                    $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
-                                                callbackData: $"Choose$Frequency${pfID}${hPerFWeek}-{hPerSWeek}-0-0")});
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
-                                                callbackData: $"Choose$Frequency${pfID}${hPerWeek * 2}-0-0-0")});
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
-                                                callbackData: $"Choose$Frequency${pfID}$0-{hPerWeek * 2}-0-0")});
-
+                                                response += "\n\n*Выберите распределение на первую половину семестра:*";
                                                 break;
 
                                             case "3":
                                                 hPerWeek = hours / 8;
-                                                if (hPerWeek % 2 != 0)
-                                                {
-                                                    hPerFWeek = hPerWeek + 1;
-                                                    hPerSWeek = hPerWeek - 1;
-                                                }
-                                                else
-                                                {
-                                                    hPerFWeek = hPerWeek;
-                                                    hPerSWeek = hPerWeek;
-                                                }
-                                                response += "\n\n*Выберите распределение на вторую половину семестра:*" +
-                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
-                                                    $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
-                                                    $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
+                                                response += "\n\n*Выберите распределение на вторую половину семестра:*";
+                                                break;
+                                        }
+
+                                        if (hPerWeek % 2 != 0)
+                                        {
+                                            hPerFWeek = hPerWeek + 1;
+                                            hPerSWeek = hPerWeek - 1;
+                                            if (pref.ID % 2 == 0) (hPerFWeek, hPerSWeek) = (hPerSWeek, hPerFWeek); //swap часов для четных занятий
+                                        }
+                                        else
+                                        {
+                                            hPerFWeek = hPerWeek;
+                                            hPerSWeek = hPerWeek;
+                                        }
+                                        a = hPerWeek * 2;
+                                        if (pref.ID % 2 == 0) (a, b) = (b, a); //swap часов для четных занятий
+                                        response += $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
+                                                    $"\n\n2. Только по одной неделе (Кол-во часов - {hPerWeek * 2})";
+                                        switch (cArgs[3])
+                                        {
+                                            case "1":
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}${hPerFWeek}-{hPerSWeek}")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}${a}-{b}")});
+                                                break;
+
+                                            case "2":
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Choose$Frequency${pfID}${hPerFWeek}-{hPerSWeek}-0-0")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Choose$Frequency${pfID}${a}-{b}-0-0")});
+                                                break;
+
+                                            case "3":
                                                 ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
                                                 callbackData: $"Choose$Frequency${pfID}$0-0-{hPerFWeek}-{hPerSWeek}")});
                                                 ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
-                                                callbackData: $"Choose$Frequency${pfID}$0-0-{hPerWeek * 2}-0")});
-                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
-                                                callbackData: $"Choose$Frequency${pfID}$0-0-0-{hPerWeek * 2}")});
-
+                                                callbackData: $"Choose$Frequency${pfID}$0-0-{a}-{b}")});
                                                 break;
                                         }
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
@@ -446,30 +425,29 @@ namespace TeacherPreffsCollector
 
                                     if (cArgs.Length == 5)
                                     {
-                                        hAfter = hAfter = (hours - hours % 16) / 2;
                                         hPerWeek = hAfter / 8;
                                         if (hPerWeek % 2 != 0)
                                         {
                                             hPerFWeek = hPerWeek + 1;
                                             hPerSWeek = hPerWeek - 1;
+                                            if (pref.ID % 2 == 0) (hPerFWeek, hPerSWeek) = (hPerSWeek, hPerFWeek); //swap часов для четных занятий
                                         }
                                         else
                                         {
                                             hPerFWeek = hPerWeek;
                                             hPerSWeek = hPerWeek;
                                         }
+                                        a = hPerWeek * 2;
+                                        if (pref.ID % 2 == 0) (a, b) = (b, a); //swap часов для четных занятий
 
-                                        response += "\n\n*Выберите распределение на вторую половину семестра:*" +
-                                            $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
-                                            $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
-                                            $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
+                                        response += $"\n\n*Выберите распределение на вторую половину семестра:*" + 
+                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
+                                                    $"\n\n2. Только по одной неделе (Кол-во часов - {hPerWeek * 2})";
 
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
                                                 callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-{hPerFWeek}-{hPerSWeek}")});
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
-                                                callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-{hPerWeek * 2}-0")});
-                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
-                                                callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-0-{hPerWeek * 2}")});
+                                                callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-{a}-{b}")});
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
                                                 callbackData: $"Edit$Frequency${pfID}$1")});
                                     }
@@ -522,8 +500,8 @@ namespace TeacherPreffsCollector
                                     {
                                         if (pfID != -1)
                                         {
-                                            preff = entities.Prefference.Single(x => x.ID == pfID);
-                                            if (preff.Weekdays != null) sw = preff.Weekdays.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                                            pref = entities.Preference.Single(x => x.ID == pfID);
+                                            if (pref.Weekdays != null) sw = pref.Weekdays.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries);
                                         }
                                         else
                                         {
@@ -578,48 +556,48 @@ namespace TeacherPreffsCollector
                         case "Choose":
                             if (pfID != -1)
                             {
-                                preff = entities.Prefference.Single(x => x.ID == pfID);
+                                pref = entities.Preference.Single(x => x.ID == pfID);
                                 switch (cArgs[1])
                                 {
                                     case "Auditory":
-                                        if (cArgs[3] != "") preff.AuditoryID = Convert.ToInt32(cArgs[3]);
-                                        else preff.AuditoryID = null;
+                                        if (cArgs[3] != "") pref.AuditoryID = Convert.ToInt32(cArgs[3]);
+                                        else pref.AuditoryID = null;
                                         break;
 
                                     case "Frequency":
                                         if (cArgs[3] != "")
                                         {
                                             string[] h = cArgs[3].Split('-');
-                                            preff.BCFirstWeek = Convert.ToInt16(h[0]);
-                                            preff.BCSecondWeek = Convert.ToInt16(h[1]);
-                                            preff.ACFirstWeek = Convert.ToInt16(h[2]);
-                                            preff.ACSecondWeek = Convert.ToInt16(h[3]);
+                                            pref.BCFirstWeek = Convert.ToInt16(h[0]);
+                                            pref.BCSecondWeek = Convert.ToInt16(h[1]);
+                                            pref.ACFirstWeek = Convert.ToInt16(h[2]);
+                                            pref.ACSecondWeek = Convert.ToInt16(h[3]);
                                         }
                                         else
                                         {
-                                            preff.BCFirstWeek = null;
-                                            preff.BCSecondWeek = null;
-                                            preff.ACFirstWeek = null;
-                                            preff.ACSecondWeek = null;
+                                            pref.BCFirstWeek = null;
+                                            pref.BCSecondWeek = null;
+                                            pref.ACFirstWeek = null;
+                                            pref.ACSecondWeek = null;
                                         }
                                         break;
 
                                     case "Time":
                                         if (cArgs[3] != "" && cArgs[4] != "")
                                         {
-                                            preff.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
-                                            preff.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
+                                            pref.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
+                                            pref.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
                                         }
                                         else
                                         {
-                                            preff.TimeBegin = null;
-                                            preff.TimeEnd = null;
+                                            pref.TimeBegin = null;
+                                            pref.TimeEnd = null;
                                         }
                                         break;
 
                                     case "Weekdays":
-                                        if (cArgs[3] != "") preff.Weekdays = cArgs[3];
-                                        else preff.Weekdays = null;
+                                        if (cArgs[3] != "") pref.Weekdays = cArgs[3];
+                                        else pref.Weekdays = null;
                                         break;
                                 }
                                 updateInfo = true;
@@ -634,7 +612,7 @@ namespace TeacherPreffsCollector
                                         {
                                             tch.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
                                             tch.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
-                                            foreach (var p in entities.Prefference.ToList())
+                                            foreach (var p in entities.Preference.ToList())
                                             {
                                                 p.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
                                                 p.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
@@ -652,7 +630,7 @@ namespace TeacherPreffsCollector
                                         if (cArgs[3] != "")
                                         {
                                             tch.Weekdays = cArgs[3];
-                                            foreach (var p in entities.Prefference.ToList())
+                                            foreach (var p in entities.Preference.ToList())
                                             {
                                                 p.Weekdays = cArgs[3];
                                             }
@@ -685,7 +663,7 @@ namespace TeacherPreffsCollector
                         if (pfID != -1)
                             response = 
                                 "*Вы редактируете информацию о следующей дисциплине:*\n" 
-                                + getPreffInfo(preff) +
+                                + getPrefInfo(pref) +
                                 "\n\nЧто вы хотите изменить?";
                         else
                             response =

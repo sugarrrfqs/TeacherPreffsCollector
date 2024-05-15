@@ -13,10 +13,10 @@ namespace TeacherPreffsCollector
     using System.Data.Entity;
     using System.Data.Entity.Infrastructure;
     
-    public partial class TeacherPreffsEntities : DbContext
+    public partial class TeacherPrefsEntities : DbContext
     {
-        public TeacherPreffsEntities()
-            : base("name=TeacherPreffsEntities")
+        public TeacherPrefsEntities()
+            : base("name=TeacherPrefsEntities")
         {
         }
     
@@ -27,7 +27,7 @@ namespace TeacherPreffsCollector
     
         public virtual DbSet<Auditory> Auditory { get; set; }
         public virtual DbSet<Discipline> Discipline { get; set; }
-        public virtual DbSet<Prefference> Prefference { get; set; }
+        public virtual DbSet<Preference> Preference { get; set; }
         public virtual DbSet<Teacher> Teacher { get; set; }
     }
 }

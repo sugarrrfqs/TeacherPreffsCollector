@@ -17,17 +17,17 @@ namespace TeacherPreffsCollector
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
         public Discipline()
         {
-            this.Prefference = new HashSet<Prefference>();
+            this.Preference = new HashSet<Preference>();
         }
     
         public int ID { get; set; }
         public string Name { get; set; }
         public string Type { get; set; }
         public string Group { get; set; }
-        public string Hours { get; set; }
         public Nullable<int> StudentsCount { get; set; }
+        public string Hours { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<Prefference> Prefference { get; set; }
+        public virtual ICollection<Preference> Preference { get; set; }
     }
 }

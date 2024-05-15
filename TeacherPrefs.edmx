@@ -4,19 +4,18 @@
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-    <Schema Namespace="Хранилище TeacherPreffsModel" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+    <Schema Namespace="Хранилище TeacherPrefsModel" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
         <EntityType Name="Auditory">
           <Key>
             <PropertyRef Name="ID" />
           </Key>
           <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-          <Property Name="Department" Type="nchar" MaxLength="10" Nullable="false" />
-          <Property Name="Number" Type="nchar" MaxLength="10" Nullable="false" />
+          <Property Name="Department" Type="nvarchar" MaxLength="15" Nullable="false" />
+          <Property Name="Number" Type="nvarchar" MaxLength="10" Nullable="false" />
           <Property Name="Capacity" Type="int" Nullable="false" />
           <Property Name="Workplaces" Type="int" Nullable="false" />
           <Property Name="Equipment" Type="nvarchar" MaxLength="200" />
           <Property Name="Projector" Type="bit" Nullable="false" />
-          <Property Name="SmartDesc" Type="bit" Nullable="false" />
         </EntityType>
         <EntityType Name="Discipline">
           <Key>
@@ -29,7 +28,7 @@
           <Property Name="StudentsCount" Type="int" />
           <Property Name="Hours" Type="nvarchar" MaxLength="50" Nullable="false" />
         </EntityType>
-        <EntityType Name="Prefference">
+        <EntityType Name="Preference">
           <Key>
             <PropertyRef Name="ID" />
           </Key>
@@ -61,75 +60,74 @@
         </EntityType>
         <Association Name="FK_Prefference_Auditory">
           <End Role="Auditory" Type="Self.Auditory" Multiplicity="0..1" />
-          <End Role="Prefference" Type="Self.Prefference" Multiplicity="*" />
+          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
           <ReferentialConstraint>
             <Principal Role="Auditory">
               <PropertyRef Name="ID" />
             </Principal>
-            <Dependent Role="Prefference">
+            <Dependent Role="Preference">
               <PropertyRef Name="AuditoryID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
         <Association Name="FK_Prefference_Discipline">
           <End Role="Discipline" Type="Self.Discipline" Multiplicity="1" />
-          <End Role="Prefference" Type="Self.Prefference" Multiplicity="*" />
+          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
           <ReferentialConstraint>
             <Principal Role="Discipline">
               <PropertyRef Name="ID" />
             </Principal>
-            <Dependent Role="Prefference">
+            <Dependent Role="Preference">
               <PropertyRef Name="DisciplineID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
         <Association Name="FK_Prefference_Teacher">
           <End Role="Teacher" Type="Self.Teacher" Multiplicity="1" />
-          <End Role="Prefference" Type="Self.Prefference" Multiplicity="*" />
+          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
           <ReferentialConstraint>
             <Principal Role="Teacher">
               <PropertyRef Name="ID" />
             </Principal>
-            <Dependent Role="Prefference">
+            <Dependent Role="Preference">
               <PropertyRef Name="TeacherID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <EntityContainer Name="Хранилище TeacherPreffsModelContainer">
+        <EntityContainer Name="Хранилище TeacherPrefsModelContainer">
           <EntitySet Name="Auditory" EntityType="Self.Auditory" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Discipline" EntityType="Self.Discipline" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="Prefference" EntityType="Self.Prefference" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Preference" EntityType="Self.Preference" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Teacher" EntityType="Self.Teacher" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_Prefference_Auditory" Association="Self.FK_Prefference_Auditory">
             <End Role="Auditory" EntitySet="Auditory" />
-            <End Role="Prefference" EntitySet="Prefference" />
+            <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
           <AssociationSet Name="FK_Prefference_Discipline" Association="Self.FK_Prefference_Discipline">
             <End Role="Discipline" EntitySet="Discipline" />
-            <End Role="Prefference" EntitySet="Prefference" />
+            <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
           <AssociationSet Name="FK_Prefference_Teacher" Association="Self.FK_Prefference_Teacher">
             <End Role="Teacher" EntitySet="Teacher" />
-            <End Role="Prefference" EntitySet="Prefference" />
+            <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
         </EntityContainer>
       </Schema></edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
-      <Schema Namespace="TeacherPreffsModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+      <Schema Namespace="TeacherPrefsModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
         <EntityType Name="Auditory">
           <Key>
             <PropertyRef Name="ID" />
           </Key>
           <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="Department" Type="String" MaxLength="10" FixedLength="true" Unicode="true" Nullable="false" />
-          <Property Name="Number" Type="String" MaxLength="10" FixedLength="true" Unicode="true" Nullable="false" />
+          <Property Name="Department" Type="String" MaxLength="15" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Number" Type="String" MaxLength="10" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="Capacity" Type="Int32" Nullable="false" />
-          <Property Name="Projector" Type="Boolean" Nullable="false" />
-          <Property Name="SmartDesc" Type="Boolean" Nullable="false" />
-          <NavigationProperty Name="Prefference" Relationship="Self.FK_Prefference_Auditory" FromRole="Auditory" ToRole="Prefference" />
           <Property Name="Workplaces" Type="Int32" Nullable="false" />
           <Property Name="Equipment" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Projector" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Auditory" FromRole="Auditory" ToRole="Preference" />
         </EntityType>
         <EntityType Name="Discipline">
           <Key>
@@ -139,11 +137,11 @@
           <Property Name="Name" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="Type" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="Group" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Hours" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <NavigationProperty Name="Prefference" Relationship="Self.FK_Prefference_Discipline" FromRole="Discipline" ToRole="Prefference" />
           <Property Name="StudentsCount" Type="Int32" />
+          <Property Name="Hours" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Discipline" FromRole="Discipline" ToRole="Preference" />
         </EntityType>
-        <EntityType Name="Prefference">
+        <EntityType Name="Preference">
           <Key>
             <PropertyRef Name="ID" />
           </Key>
@@ -156,11 +154,11 @@
           <Property Name="ACFirstWeek" Type="Int16" />
           <Property Name="ACSecondWeek" Type="Int16" />
           <Property Name="Weekdays" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
-          <Property Name="TimeBegin" Type="String" MaxLength="50" Unicode="true" FixedLength="false" />
-          <Property Name="TimeEnd" Type="String" MaxLength="50" Unicode="true" FixedLength="false" />
-          <NavigationProperty Name="Auditory" Relationship="Self.FK_Prefference_Auditory" FromRole="Prefference" ToRole="Auditory" />
-          <NavigationProperty Name="Discipline" Relationship="Self.FK_Prefference_Discipline" FromRole="Prefference" ToRole="Discipline" />
-          <NavigationProperty Name="Teacher" Relationship="Self.FK_Prefference_Teacher" FromRole="Prefference" ToRole="Teacher" />
+          <Property Name="TimeBegin" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TimeEnd" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Auditory" Relationship="Self.FK_Prefference_Auditory" FromRole="Preference" ToRole="Auditory" />
+          <NavigationProperty Name="Discipline" Relationship="Self.FK_Prefference_Discipline" FromRole="Preference" ToRole="Discipline" />
+          <NavigationProperty Name="Teacher" Relationship="Self.FK_Prefference_Teacher" FromRole="Preference" ToRole="Teacher" />
         </EntityType>
         <EntityType Name="Teacher">
           <Key>
@@ -172,63 +170,63 @@
           <Property Name="LastName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="FirstName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="MiddleName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
-          <NavigationProperty Name="Prefference" Relationship="Self.FK_Prefference_Teacher" FromRole="Teacher" ToRole="Prefference" />
           <Property Name="Weekdays" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="TimeBegin" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="TimeEnd" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Teacher" FromRole="Teacher" ToRole="Preference" />
         </EntityType>
         <Association Name="FK_Prefference_Auditory">
           <End Role="Auditory" Type="Self.Auditory" Multiplicity="0..1" />
-          <End Role="Prefference" Type="Self.Prefference" Multiplicity="*" />
+          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
           <ReferentialConstraint>
             <Principal Role="Auditory">
               <PropertyRef Name="ID" />
             </Principal>
-            <Dependent Role="Prefference">
+            <Dependent Role="Preference">
               <PropertyRef Name="AuditoryID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
         <Association Name="FK_Prefference_Discipline">
           <End Role="Discipline" Type="Self.Discipline" Multiplicity="1" />
-          <End Role="Prefference" Type="Self.Prefference" Multiplicity="*" />
+          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
           <ReferentialConstraint>
             <Principal Role="Discipline">
               <PropertyRef Name="ID" />
             </Principal>
-            <Dependent Role="Prefference">
+            <Dependent Role="Preference">
               <PropertyRef Name="DisciplineID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
         <Association Name="FK_Prefference_Teacher">
           <End Role="Teacher" Type="Self.Teacher" Multiplicity="1" />
-          <End Role="Prefference" Type="Self.Prefference" Multiplicity="*" />
+          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
           <ReferentialConstraint>
             <Principal Role="Teacher">
               <PropertyRef Name="ID" />
             </Principal>
-            <Dependent Role="Prefference">
+            <Dependent Role="Preference">
               <PropertyRef Name="TeacherID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <EntityContainer Name="TeacherPreffsEntities" annotation:LazyLoadingEnabled="true">
+        <EntityContainer Name="TeacherPrefsEntities" annotation:LazyLoadingEnabled="true">
           <EntitySet Name="Auditory" EntityType="Self.Auditory" />
           <EntitySet Name="Discipline" EntityType="Self.Discipline" />
-          <EntitySet Name="Prefference" EntityType="Self.Prefference" />
+          <EntitySet Name="Preference" EntityType="Self.Preference" />
           <EntitySet Name="Teacher" EntityType="Self.Teacher" />
           <AssociationSet Name="FK_Prefference_Auditory" Association="Self.FK_Prefference_Auditory">
             <End Role="Auditory" EntitySet="Auditory" />
-            <End Role="Prefference" EntitySet="Prefference" />
+            <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
           <AssociationSet Name="FK_Prefference_Discipline" Association="Self.FK_Prefference_Discipline">
             <End Role="Discipline" EntitySet="Discipline" />
-            <End Role="Prefference" EntitySet="Prefference" />
+            <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
           <AssociationSet Name="FK_Prefference_Teacher" Association="Self.FK_Prefference_Teacher">
             <End Role="Teacher" EntitySet="Teacher" />
-            <End Role="Prefference" EntitySet="Prefference" />
+            <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
         </EntityContainer>
       </Schema>
@@ -236,36 +234,35 @@
     <!-- C-S mapping content -->
     <edmx:Mappings>
       <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
-        <EntityContainerMapping StorageEntityContainer="Хранилище TeacherPreffsModelContainer" CdmEntityContainer="TeacherPreffsEntities">
+        <EntityContainerMapping StorageEntityContainer="Хранилище TeacherPrefsModelContainer" CdmEntityContainer="TeacherPrefsEntities">
           <EntitySetMapping Name="Auditory">
-            <EntityTypeMapping TypeName="TeacherPreffsModel.Auditory">
+            <EntityTypeMapping TypeName="TeacherPrefsModel.Auditory">
               <MappingFragment StoreEntitySet="Auditory">
-                <ScalarProperty Name="Equipment" ColumnName="Equipment" />
-                <ScalarProperty Name="Workplaces" ColumnName="Workplaces" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="Department" ColumnName="Department" />
                 <ScalarProperty Name="Number" ColumnName="Number" />
                 <ScalarProperty Name="Capacity" ColumnName="Capacity" />
+                <ScalarProperty Name="Workplaces" ColumnName="Workplaces" />
+                <ScalarProperty Name="Equipment" ColumnName="Equipment" />
                 <ScalarProperty Name="Projector" ColumnName="Projector" />
-                <ScalarProperty Name="SmartDesc" ColumnName="SmartDesc" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
           <EntitySetMapping Name="Discipline">
-            <EntityTypeMapping TypeName="TeacherPreffsModel.Discipline">
+            <EntityTypeMapping TypeName="TeacherPrefsModel.Discipline">
               <MappingFragment StoreEntitySet="Discipline">
-                <ScalarProperty Name="StudentsCount" ColumnName="StudentsCount" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="Name" ColumnName="Name" />
                 <ScalarProperty Name="Type" ColumnName="Type" />
                 <ScalarProperty Name="Group" ColumnName="Group" />
+                <ScalarProperty Name="StudentsCount" ColumnName="StudentsCount" />
                 <ScalarProperty Name="Hours" ColumnName="Hours" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
-          <EntitySetMapping Name="Prefference">
-            <EntityTypeMapping TypeName="TeacherPreffsModel.Prefference">
-              <MappingFragment StoreEntitySet="Prefference">
+          <EntitySetMapping Name="Preference">
+            <EntityTypeMapping TypeName="TeacherPrefsModel.Preference">
+              <MappingFragment StoreEntitySet="Preference">
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="TeacherID" ColumnName="TeacherID" />
                 <ScalarProperty Name="DisciplineID" ColumnName="DisciplineID" />
@@ -281,17 +278,17 @@
             </EntityTypeMapping>
           </EntitySetMapping>
           <EntitySetMapping Name="Teacher">
-            <EntityTypeMapping TypeName="TeacherPreffsModel.Teacher">
+            <EntityTypeMapping TypeName="TeacherPrefsModel.Teacher">
               <MappingFragment StoreEntitySet="Teacher">
-                <ScalarProperty Name="TimeEnd" ColumnName="TimeEnd" />
-                <ScalarProperty Name="TimeBegin" ColumnName="TimeBegin" />
-                <ScalarProperty Name="Weekdays" ColumnName="Weekdays" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="IdentificationCode" ColumnName="IdentificationCode" />
                 <ScalarProperty Name="ChatID" ColumnName="ChatID" />
                 <ScalarProperty Name="LastName" ColumnName="LastName" />
                 <ScalarProperty Name="FirstName" ColumnName="FirstName" />
                 <ScalarProperty Name="MiddleName" ColumnName="MiddleName" />
+                <ScalarProperty Name="Weekdays" ColumnName="Weekdays" />
+                <ScalarProperty Name="TimeBegin" ColumnName="TimeBegin" />
+                <ScalarProperty Name="TimeEnd" ColumnName="TimeEnd" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

@@ -12,7 +12,7 @@ namespace TeacherPreffsCollector
     using System;
     using System.Collections.Generic;
     
-    public partial class Prefference
+    public partial class Preference
     {
         public int ID { get; set; }
         public string TeacherID { get; set; }

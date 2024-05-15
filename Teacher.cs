@@ -17,7 +17,7 @@ namespace TeacherPreffsCollector
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
         public Teacher()
         {
-            this.Prefference = new HashSet<Prefference>();
+            this.Preference = new HashSet<Preference>();
         }
     
         public string ID { get; set; }
@@ -31,6 +31,6 @@ namespace TeacherPreffsCollector
         public string TimeEnd { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<Prefference> Prefference { get; set; }
+        public virtual ICollection<Preference> Preference { get; set; }
     }
 }
