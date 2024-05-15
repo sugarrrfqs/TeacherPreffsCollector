@@ -84,6 +84,22 @@ namespace TeacherPreffsCollector
 
             return response;
         }
+        static string getTeacherInfo(Teacher tch)
+        {
+            string response = "";
+
+            response += "*Ваши пожелания:*";
+
+            response += "\nДни недели: ";
+            if (tch.Weekdays != null) response += tch.Weekdays;
+            else response += "Не заданы";
+
+            response += "\nВремя: ";
+            if (tch.TimeBegin != null) response += tch.TimeBegin + " - " + tch.TimeEnd;
+            else response += "Не задано";
+
+            return response;
+        }
 
 
         async static Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -105,6 +121,7 @@ namespace TeacherPreffsCollector
                         Teacher tch = null;
                         Discipline disc = null;
                         Auditory aud = null;
+                        List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
 
                         foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == chatId) tch = t;
                         string response = "";
@@ -116,8 +133,6 @@ namespace TeacherPreffsCollector
                             Console.WriteLine($"Received a '{messageText}' message in chat {chatId}.");
                             switch (cArgs[0])
                             {
-                                case "/d":
-                                    break;
                                 case "/dp":
                                     response += "Ваш список дисциплин:\n";
                                     foreach (Prefference pf in entities.Prefference.Where(x => x.TeacherID == tch.ID).ToList())
@@ -126,55 +141,56 @@ namespace TeacherPreffsCollector
                                             getPreffInfo(pf) 
                                             + "\nИзменить пожелания: /pfQ" + pf.ID + "\n\n";
                                     }
-                                    sentMessage = await botClient.SendTextMessageAsync(
-                                        chatId: chatId,
-                                        text: response,
-                                        parseMode: ParseMode.Markdown,
-                                        cancellationToken: cancellationToken);
                                     break;
 
                                 case "/pf":
-                                    string pfID = cArgs[1];
-                                    bool success = false;
-                                    try
+                                    if (cArgs.Length == 1)
                                     {
-                                        preff = entities.Prefference.Single(x => x.ID.ToString() == pfID);
-                                        if (tch.ID == preff.TeacherID)
+                                        response =
+                                            $"Вы можете задать дни недели и время занятий \"по умолчанию\", " +
+                                            $"эти значения будут применены для всех ваших дисциплин, " +
+                                            $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /dp\n\n" +
+                                            getTeacherInfo(tch) + 
+                                            $"\n\nЧто вы хотите изменить?";
+                                        ikb.Add(new[]
+                                                {
+                                                    InlineKeyboardButton.WithCallbackData(text: "Дни недели", callbackData: $"Edit$Weekdays$-1"),
+                                                    InlineKeyboardButton.WithCallbackData(text: "Время", callbackData: $"Edit$Time$-1")
+                                                });
+                                    }
+                                    if (cArgs.Length == 2)
+                                    {
+                                        string pfID = cArgs[1];
+                                        try
                                         {
-                                            response += 
-                                                "*Вы редактируете информацию о следующей дисциплине:*\n" 
-                                                + getPreffInfo(preff) 
-                                                + "\n\nЧто вы хотите изменить?";
-                                            success = true;
-                                            sentMessage = await botClient.SendTextMessageAsync(
-                                                chatId: chatId,
-                                                text: response,
-                                                parseMode: ParseMode.Markdown,
-                                                replyMarkup: new InlineKeyboardMarkup(new[]
+                                            preff = entities.Prefference.Single(x => x.ID.ToString() == pfID);
+                                            if (tch.ID == preff.TeacherID)
+                                            {
+                                                response =
+                                                    "*Вы редактируете информацию о следующей дисциплине:*\n"
+                                                    + getPreffInfo(preff)
+                                                    + "\n\nЧто вы хотите изменить?";
+                                                ikb.Add(new[]
                                                 {
                                                     InlineKeyboardButton.WithCallbackData(text: "Аудиторию", callbackData: $"Edit$Auditory${pfID}"),
                                                     InlineKeyboardButton.WithCallbackData(text: "Частоту", callbackData: $"Edit$Frequency${pfID}"),
                                                     InlineKeyboardButton.WithCallbackData(text: "Дни недели", callbackData: $"Edit$Weekdays${pfID}"),
                                                     InlineKeyboardButton.WithCallbackData(text: "Время", callbackData: $"Edit$Time${pfID}")
-                                                }),
-                                                cancellationToken: cancellationToken);
-                                        }
-                                        else
-                                        {
-                                            response += "Вы не имеете доступа к этой дисциплине.";
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        response += "Дисциплина не найдена.";
-                                    }
+                                                });
 
-                                    if (!success) sentMessage = await botClient.SendTextMessageAsync(
-                                        chatId: chatId,
-                                        text: response,
-                                        parseMode: ParseMode.Markdown,
-                                        cancellationToken: cancellationToken);
+                                            }
+                                            else
+                                            {
+                                                response = "Вы не имеете доступа к этой дисциплине.";
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            response = "Дисциплина не найдена.";
+                                        }
+                                    }
                                     break;
+
                                 case "/help":
                                     break;
 
@@ -187,18 +203,11 @@ namespace TeacherPreffsCollector
                                             entities.SaveChanges();
                                         }
                                     }
-                                    sentMessage = await botClient.SendTextMessageAsync(
-                                        chatId: chatId,
-                                        text: "Вы успешно вышли из аккаунта.",
-                                        parseMode: ParseMode.Markdown,
-                                        cancellationToken: cancellationToken);
+                                    response = "Вы успешно вышли из аккаунта.";
                                     break;
 
                                 default:
-                                    sentMessage = await botClient.SendTextMessageAsync(
-                                        chatId: chatId,
-                                        text: "You said:\n" + messageText,
-                                        cancellationToken: cancellationToken);
+                                    response = "Команда не найдена: " + messageText;
                                     break;
                             }
                         }
@@ -206,10 +215,7 @@ namespace TeacherPreffsCollector
                         {
                             if (messageText == "/start")
                             {
-                                sentMessage = await botClient.SendTextMessageAsync(
-                                    chatId: chatId,
-                                    text: "Здравствуйте, перед началом работы необходимо авторизоваться, введите код авторизации.",
-                                    cancellationToken: cancellationToken);
+                                response = "Здравствуйте, перед началом работы необходимо авторизоваться, введите код авторизации.";
                             }
                             else
                             {
@@ -228,20 +234,21 @@ namespace TeacherPreffsCollector
 
                                 if (found)
                                 {
-                                    sentMessage = await botClient.SendTextMessageAsync(
-                                    chatId: chatId,
-                                    text: $"Вы успешно авторизовались, {newTeacher.LastName} {newTeacher.FirstName} {newTeacher.MiddleName}.\nДля работы с ботом используйте меню, чтобы получить список команд используйте /help.",
-                                    cancellationToken: cancellationToken);
+                                    response = $"Вы успешно авторизовались, {newTeacher.LastName} {newTeacher.FirstName} {newTeacher.MiddleName}.\nДля работы с ботом используйте меню, чтобы получить список команд используйте /help.";
                                 }
                                 else
                                 {
-                                    sentMessage = await botClient.SendTextMessageAsync(
-                                    chatId: chatId,
-                                    text: "Неверный код, попробуйте снова.",
-                                    cancellationToken: cancellationToken);
+                                    response = "Неверный код, попробуйте снова.";
                                 }
                             }
                         }
+                        InlineKeyboardMarkup rmp = new InlineKeyboardMarkup(ikb);
+                        sentMessage = await botClient.SendTextMessageAsync(
+                            chatId: chatId,
+                            text: response,
+                            parseMode: ParseMode.Markdown,
+                            replyMarkup: rmp,
+                            cancellationToken: cancellationToken);
                     }
                 }
                 if (update.CallbackQuery is not null)
@@ -254,6 +261,7 @@ namespace TeacherPreffsCollector
                     int i = 0;
                     bool clear = false;
                     bool updateInfo = false;
+                    string noti = "";
 
                     Console.WriteLine($"Pressed inline button, Data = {callbackQuery.Data}");
 
@@ -272,7 +280,7 @@ namespace TeacherPreffsCollector
                     InlineKeyboardButton[] buttonRow = new InlineKeyboardButton[2];
                     List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
                     Prefference preff = null;
-                    //Teacher tch = null;
+                    Teacher tch = null;
                     Discipline disc = null;
                     //Auditory aud = null;
 
@@ -283,7 +291,9 @@ namespace TeacherPreffsCollector
                             {
                                 case "Auditory":
                                     response += callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор аудитории:*");
-                                    foreach (var au in entities.Auditory.OrderBy(x => x.Department).ThenBy(x => x.Number).ToList())
+                                    preff = entities.Prefference.Single(x => x.ID == pfID);
+                                    disc = entities.Discipline.Single(x => x.ID == preff.DisciplineID);
+                                    foreach (var au in entities.Auditory.Where(x => x.Capacity >= disc.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList())
                                     {
                                         response += "\n*Аудитория:* \n" +
                                             "Корпус: " + au.Department + "\n" +
@@ -297,7 +307,9 @@ namespace TeacherPreffsCollector
                                                 callbackData: $"Choose$Auditory${pfID}${au.ID}")});
                                     }
                                     ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
-                                                callbackData: $"Cancel$Auditory${pfID}")});
+                                                callbackData: $"Cancel$Auditory${pfID}"),
+                                                   InlineKeyboardButton.WithCallbackData(text: "Сбросить",
+                                                callbackData: $"Choose$Auditory${pfID}$")});                               
                                     break;
 
                                 case "Frequency":
@@ -346,9 +358,11 @@ namespace TeacherPreffsCollector
                                             i++;
                                         }
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
-                                                callbackData: $"Cancel$Time${pfID}")});
+                                                callbackData: $"Cancel$Time${pfID}"),
+                                                       InlineKeyboardButton.WithCallbackData(text: "Сбросить",
+                                                callbackData: $"Choose$Time${pfID}$")});
                                     }
-                                    else
+                                    if (cArgs.Length == 4)
                                     {
                                         int beg = Convert.ToInt32(cArgs[3]);
                                         response += callbackQuery.Message.Text
@@ -373,11 +387,19 @@ namespace TeacherPreffsCollector
 
                                     if (cArgs.Length == 3)
                                     {
-                                        preff = entities.Prefference.Single(x => x.ID == pfID);
-                                        if (preff.Weekdays != null) sw = preff.Weekdays.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                                        if (pfID != -1)
+                                        {
+                                            preff = entities.Prefference.Single(x => x.ID == pfID);
+                                            if (preff.Weekdays != null) sw = preff.Weekdays.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                                        }
+                                        else
+                                        {
+                                            foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == callbackQuery.Message.Chat.Id) tch = t;
+                                            if (tch.Weekdays != null) sw = tch.Weekdays.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                                        }
                                         foreach (var w in sw) selectedWeekdays[Array.IndexOf(weekdays, w)] = true;
                                     }
-                                    else
+                                    if (cArgs.Length == 4)
                                     {
                                         response = response
                                             .Remove(response.IndexOf("Выбранные дни:") + 14, response.Length - response.IndexOf("Выбранные дни:") - 14)
@@ -410,36 +432,90 @@ namespace TeacherPreffsCollector
                                                 callbackData: $"Edit$Weekdays${pfID}${wd}, {weekdays[i]}")});
                                     }                                 
                                     ikb.Add(new[] {
-                                        InlineKeyboardButton.WithCallbackData(text: "Сохранить",
-                                                callbackData: $"Choose$Weekdays${pfID}${wd}"),
                                         InlineKeyboardButton.WithCallbackData(text: "Назад",
-                                                callbackData: $"Cancel$Weekdays${pfID}")});
+                                                callbackData: $"Cancel$Weekdays${pfID}"),
+                                        InlineKeyboardButton.WithCallbackData(text: "Сбросить",
+                                                callbackData: $"Choose$Weekdays${pfID}$"),
+                                        InlineKeyboardButton.WithCallbackData(text: "Сохранить",
+                                                callbackData: $"Choose$Weekdays${pfID}${wd}")});
                                     break;
                             }
                             break;
 
                         case "Choose":
-                            preff = entities.Prefference.Single(x => x.ID == pfID);
-                            switch (cArgs[1])
+                            if (pfID != -1)
                             {
-                                case "Auditory":                                  
-                                    preff.AuditoryID = Convert.ToInt32(cArgs[3]);                                 
-                                    break;
+                                preff = entities.Prefference.Single(x => x.ID == pfID);
+                                switch (cArgs[1])
+                                {
+                                    case "Auditory":
+                                        if (cArgs[3] != "") preff.AuditoryID = Convert.ToInt32(cArgs[3]);
+                                        else preff.AuditoryID = null;
+                                        break;
 
-                                case "Frequency":
-                                    break;
+                                    case "Frequency":
+                                        break;
 
-                                case "Time":
-                                    preff.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
-                                    preff.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
-                                    break;
+                                    case "Time":
+                                        if (cArgs[3] != "" && cArgs[4] != "")
+                                        {
+                                            preff.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
+                                            preff.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
+                                        }
+                                        else
+                                        {
+                                            preff.TimeBegin = null;
+                                            preff.TimeEnd = null;
+                                        }
+                                        break;
 
-                                case "Weekdays":                                  
-                                    preff.Weekdays = cArgs[3];
-                                    break;
+                                    case "Weekdays":
+                                        if (cArgs[3] != "") preff.Weekdays = cArgs[3];
+                                        else preff.Weekdays = null;
+                                        break;
+                                }
+                                updateInfo = true;
+                            }
+                            else
+                            {
+                                foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == callbackQuery.Message.Chat.Id) tch = t;
+                                switch (cArgs[1])
+                                {
+                                    case "Time":
+                                        if (cArgs[3] != "" && cArgs[4] != "")
+                                        {
+                                            tch.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
+                                            tch.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
+                                            foreach (var p in entities.Prefference.ToList())
+                                            {
+                                                p.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
+                                                p.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
+                                            }
+                                        }
+                                        else
+                                        {
+                                            tch.TimeBegin = null;
+                                            tch.TimeEnd = null;
+                                        }
+                                        
+                                        break;
+
+                                    case "Weekdays":
+                                        if (cArgs[3] != "")
+                                        {
+                                            tch.Weekdays = cArgs[3];
+                                            foreach (var p in entities.Prefference.ToList())
+                                            {
+                                                p.Weekdays = cArgs[3];
+                                            }
+                                        }
+                                        else tch.Weekdays = null;
+                                        break;
+                                }
+                                updateInfo = true;
                             }
                             entities.SaveChanges();
-                            updateInfo = true;
+                            noti = "Данные успешно сохранены.";
                             break;
 
                         case "Cancel":
@@ -458,17 +534,32 @@ namespace TeacherPreffsCollector
                     }
                     if (updateInfo)
                     {
-                        response = 
-                            "*Вы редактируете информацию о следующей дисциплине:*\n" 
-                            + getPreffInfo(preff) +
-                            "\n\nЧто вы хотите изменить?";
+                        if (pfID != -1)
+                            response = 
+                                "*Вы редактируете информацию о следующей дисциплине:*\n" 
+                                + getPreffInfo(preff) +
+                                "\n\nЧто вы хотите изменить?";
+                        else
+                            response =
+                                $"Вы можете задать дни недели и время занятий \"по умолчанию\", " +
+                                $"эти значения будут применены для всех ваших дисциплин, " +
+                                $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /dp\n\n" +
+                                getTeacherInfo(tch) +
+                                $"\n\nЧто вы хотите изменить?";
                     }
                     if (clear || updateInfo)
                     {
+                        if (pfID != -1)
                         ikb.Add(new[]
                         {
                                 InlineKeyboardButton.WithCallbackData(text: "Аудиторию", callbackData: $"Edit$Auditory${pfID}"),
                                 InlineKeyboardButton.WithCallbackData(text: "Частоту", callbackData: $"Edit$Frequency${pfID}"),
+                                InlineKeyboardButton.WithCallbackData(text: "Дни недели", callbackData: $"Edit$Weekdays${pfID}"),
+                                InlineKeyboardButton.WithCallbackData(text: "Время", callbackData: $"Edit$Time${pfID}")
+                        });
+                        else
+                        ikb.Add(new[]
+                        {
                                 InlineKeyboardButton.WithCallbackData(text: "Дни недели", callbackData: $"Edit$Weekdays${pfID}"),
                                 InlineKeyboardButton.WithCallbackData(text: "Время", callbackData: $"Edit$Time${pfID}")
                         });
@@ -480,7 +571,7 @@ namespace TeacherPreffsCollector
                         text: response,
                         parseMode: ParseMode.Markdown,
                         replyMarkup: rmp);
-                    await botClient.AnswerCallbackQueryAsync(callbackQueryId: callbackQuery.Id);
+                    await botClient.AnswerCallbackQueryAsync(callbackQueryId: callbackQuery.Id, text: noti);
 
                 }
             }
