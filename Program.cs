@@ -59,26 +59,32 @@ namespace TeacherPreffsCollector
                 "\nГруппа: " + disc.Group + " (" + disc.StudentsCount + " чел.)" +
                 "\nОбщее кол-во часов в семестре: " + disc.Hours + "\n\n";
 
-            response += "Ваши пожелания:";
-            response += "\nАудитория: ";
+            response += "*Ваши пожелания:*";
+            response += "\n*Аудитория:* ";
             if (aud != null) response +=
-              "\n        Корпус: " + aud.Department + "\n" +
-                "        Номер: " + aud.Number + "\n" +
-                "        Вместимость: " + aud.Capacity + "\n" +
-                "        Оборудование: " + aud.Equipment + "\n" +
-                "        Проектор: " + aud.Projector + "\n" +
-                "        Смарт-доска: " + aud.SmartDesc;
+                "\n        Корпус: " + aud.Department +
+                "\n        Номер: " + aud.Number +
+                "\n        Вместимость: " + aud.Capacity +
+                "\n        Оборудование: " + aud.Equipment +
+                "\n        Проектор: " + aud.Projector +
+                "\n        Смарт-доска: " + aud.SmartDesc;
             else response += "Не задана";
 
-            response += "\nЧастота: ";
-            //if (preff.Weekdays != null) response += preff.Weekdays;
-            //else response += "Не задана";
+            response += "\n*Частота:* ";
+            if (preff.BCFirstWeek != null) response += $"\nКол-во часов:" +
+                    $"\n        До смены: " +
+                    $"\n                По первым неделям - {preff.BCFirstWeek}" +
+                    $"\n                По вторым неделям - {preff.BCSecondWeek}" +
+                    $"\n        После смены: " +
+                    $"\n                По первым неделям - {preff.ACFirstWeek}" +
+                    $"\n                По вторым неделям - {preff.ACSecondWeek}";
+            else response += "Не задана";
 
-            response += "\nДни недели: ";
+            response += "\n*Дни недели:* ";
             if (preff.Weekdays != null) response += preff.Weekdays;
             else response += "Не заданы";
 
-            response += "\nВремя: ";
+            response += "\n*Время:* ";
             if (preff.TimeBegin != null) response += preff.TimeBegin + " - " + preff.TimeEnd;
             else response += "Не задано";
 
@@ -313,33 +319,160 @@ namespace TeacherPreffsCollector
                                     break;
 
                                 case "Frequency":
-                                    i = 1;
-                                    response += callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор частоты:*");
                                     preff = entities.Prefference.Single(x => x.ID == pfID);
                                     disc = entities.Discipline.Single(x => x.ID == preff.DisciplineID);
-                                    response += $"\nУ этой дисциплины всего {disc.Hours} часов за семестр.\nВыберите один из вариантов:";
+                                    int hours = Convert.ToInt32(disc.Hours);
+                                    int hBefore = 0, hAfter = 0, hPerWeek = 0, hPerFWeek = 0, hPerSWeek = 0;
 
-                                    //if (Convert.ToInt32(disc.Hours) / 16 == 1)
-                                    //{
-                                    //    response += $"\n{i}. Одна пара в неделю, каждую неделю, весь семестр";
-                                    //    ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{i}",
-                                    //            callbackData: $"Choose$Frequency${pfID}$1")});
-                                    //    i++;
+                                    response += callbackQuery.Message.Text
+                                        .Replace("Выбор частоты:", "*Выбор частоты:*")
+                                        .Replace("Что вы хотите изменить?", $"*Выбор частоты:*\nУ этой дисциплины всего {hours} часов за семестр.")
+                                        .Replace("Выберите распределение на первую половину семестра:", "")
+                                        .Replace("Выберите распределение на вторую половину семестра:", "");
 
-                                    //    response += $"\n{i}. Одна пара в неделю, каждую неделю";
-                                    //    ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{i}",
-                                    //            callbackData: $"Choose$Frequency${pfID}$2")});
-                                    //    i++;
-                                    //}
-                                    //if (Convert.ToInt32(disc.Hours) >= 16)
-                                    //{
-                                    //    response += $"\n{i}. Одна пара в неделю, каждую неделю";
-                                    //    ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{i}",
-                                    //            callbackData: $"Choose$Frequency${pfID}$3")});
-                                    //    i++;
-                                    //}
-                                    ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
-                                                callbackData: $"Cancel$Frequency${pfID}")});
+                                    if (response.IndexOf("часов за семестр.") > 0) response = response.Remove(response.IndexOf("часов за семестр.") + 17, response.Length - response.IndexOf("часов за семестр.") - 17);                                    
+
+                                    if (cArgs.Length == 3)
+                                    {
+                                        hAfter = hAfter = (hours - hours % 16) / 2;
+                                        if (hours % 16 < 8) hBefore = hAfter;
+                                        else hBefore = hours - hAfter;
+
+                                        if (disc.Type != "Лек") (hBefore, hAfter) = (hAfter, hBefore); //swap часов для практик и лаб
+
+                                        response += $"\n\n*Выберите распределение на семестр:*";
+
+                                        response += $"\n1. До и после смены расписания (Кол-во часов до смены: {hBefore}, Кол-во часов после смены: {hAfter})" +
+                                                    $"\n\n2. Только до смены расписания" +
+                                                    $"\n\n3. Только после смены расписания";
+
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Edit$Frequency${pfID}$1")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Edit$Frequency${pfID}$2")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
+                                                callbackData: $"Edit$Frequency${pfID}$3")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Cancel$Frequency${pfID}"),
+                                                       InlineKeyboardButton.WithCallbackData(text: "Сбросить",
+                                                callbackData: $"Choose$Frequency${pfID}$")});
+                                    }
+
+                                    if (cArgs.Length == 4)
+                                    {                                     
+                                        switch (cArgs[3])
+                                        {
+                                            case "1":
+                                                hAfter = hAfter = (hours - hours % 16) / 2;
+                                                if (hours % 16 < 8) hBefore = hAfter;
+                                                else hBefore = hours - hAfter;
+                                                hPerWeek = hBefore / 8;
+                                                if (hPerWeek % 2 != 0)
+                                                {
+                                                    hPerFWeek = hPerWeek + 1;
+                                                    hPerSWeek = hPerWeek - 1;
+                                                }
+                                                else
+                                                {
+                                                    hPerFWeek = hPerWeek;
+                                                    hPerSWeek = hPerWeek;
+                                                }
+
+                                                response += "\n\n*Выберите распределение на первую половину семестра:*" +
+                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
+                                                    $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
+                                                    $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}${hPerFWeek}-{hPerSWeek}")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}${hPerWeek * 2}-0")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
+                                                callbackData: $"Edit$Frequency${pfID}${cArgs[3]}$0-{hPerWeek * 2}")});
+                                                break;
+
+                                            case "2":
+                                                hPerWeek = hours / 8;
+                                                if (hPerWeek % 2 != 0)
+                                                {
+                                                    hPerFWeek = hPerWeek + 1;
+                                                    hPerSWeek = hPerWeek - 1;
+                                                }
+                                                else
+                                                {
+                                                    hPerFWeek = hPerWeek;
+                                                    hPerSWeek = hPerWeek;
+                                                }
+                                                response += "\n\n*Выберите распределение на первую половину семестра:*" +
+                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
+                                                    $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
+                                                    $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Choose$Frequency${pfID}${hPerFWeek}-{hPerSWeek}-0-0")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Choose$Frequency${pfID}${hPerWeek * 2}-0-0-0")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
+                                                callbackData: $"Choose$Frequency${pfID}$0-{hPerWeek * 2}-0-0")});
+
+                                                break;
+
+                                            case "3":
+                                                hPerWeek = hours / 8;
+                                                if (hPerWeek % 2 != 0)
+                                                {
+                                                    hPerFWeek = hPerWeek + 1;
+                                                    hPerSWeek = hPerWeek - 1;
+                                                }
+                                                else
+                                                {
+                                                    hPerFWeek = hPerWeek;
+                                                    hPerSWeek = hPerWeek;
+                                                }
+                                                response += "\n\n*Выберите распределение на вторую половину семестра:*" +
+                                                    $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
+                                                    $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
+                                                    $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Choose$Frequency${pfID}$0-0-{hPerFWeek}-{hPerSWeek}")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Choose$Frequency${pfID}$0-0-{hPerWeek * 2}-0")});
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
+                                                callbackData: $"Choose$Frequency${pfID}$0-0-0-{hPerWeek * 2}")});
+
+                                                break;
+                                        }
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Edit$Frequency${pfID}")});
+                                    }
+
+                                    if (cArgs.Length == 5)
+                                    {
+                                        hAfter = hAfter = (hours - hours % 16) / 2;
+                                        hPerWeek = hAfter / 8;
+                                        if (hPerWeek % 2 != 0)
+                                        {
+                                            hPerFWeek = hPerWeek + 1;
+                                            hPerSWeek = hPerWeek - 1;
+                                        }
+                                        else
+                                        {
+                                            hPerFWeek = hPerWeek;
+                                            hPerSWeek = hPerWeek;
+                                        }
+
+                                        response += "\n\n*Выберите распределение на вторую половину семестра:*" +
+                                            $"\n1. Равномерно (Кол-во часов: по первым неделям - {hPerFWeek}, по вторым неделям - {hPerSWeek})" +
+                                            $"\n\n2. Только по первым неделям (Кол-во часов по первым неделям - {hPerWeek * 2})" +
+                                            $"\n\n3. Только по вторым неделям (Кол-во часов по вторым неделям - {hPerWeek * 2})";
+
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"1",
+                                                callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-{hPerFWeek}-{hPerSWeek}")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"2",
+                                                callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-{hPerWeek * 2}-0")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
+                                                callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-0-{hPerWeek * 2}")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Edit$Frequency${pfID}$1")});
+                                    }
                                     break;
 
                                 case "Time":                                  
@@ -454,6 +587,21 @@ namespace TeacherPreffsCollector
                                         break;
 
                                     case "Frequency":
+                                        if (cArgs[3] != "")
+                                        {
+                                            string[] h = cArgs[3].Split('-');
+                                            preff.BCFirstWeek = Convert.ToInt16(h[0]);
+                                            preff.BCSecondWeek = Convert.ToInt16(h[1]);
+                                            preff.ACFirstWeek = Convert.ToInt16(h[2]);
+                                            preff.ACSecondWeek = Convert.ToInt16(h[3]);
+                                        }
+                                        else
+                                        {
+                                            preff.BCFirstWeek = null;
+                                            preff.BCSecondWeek = null;
+                                            preff.ACFirstWeek = null;
+                                            preff.ACSecondWeek = null;
+                                        }
                                         break;
 
                                     case "Time":
