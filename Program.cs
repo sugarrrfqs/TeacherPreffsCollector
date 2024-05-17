@@ -105,12 +105,10 @@ namespace TeacherPreffsCollector
             return response;
         }
 
-
         async static Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                // Only process Message updates: https://core.telegram.org/bots/api#message
                 if (update.Message is not null)
                 {
                     Message sentMessage;
@@ -260,6 +258,9 @@ namespace TeacherPreffsCollector
                             cancellationToken: cancellationToken);
                     }
                 }
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 if (update.CallbackQuery is not null)
                 {                
                     var callbackQuery = update.CallbackQuery;
@@ -337,15 +338,16 @@ namespace TeacherPreffsCollector
                                         .Replace("Выбор частоты:", "*Выбор частоты:*")
                                         .Replace("Что вы хотите изменить?", $"*Выбор частоты:*\nУ этой дисциплины всего {hours} часов за семестр.")
                                         .Replace("Выберите распределение на первую половину семестра:", "")
-                                        .Replace("Выберите распределение на вторую половину семестра:", "");
+                                        .Replace("Выберите распределение на вторую половину семестра:", "")
+                                        .Replace("      Выберите количество часов по первым неделям:", "")
+                                        .Replace("      Выберите количество часов по вторым неделям:", "");
 
                                     if (response.IndexOf("часов за семестр.") > 0) response = response.Remove(response.IndexOf("часов за семестр.") + 17, response.Length - response.IndexOf("часов за семестр.") - 17);
                                     
                                     if (cArgs.Length == 3)
                                     {                                    
-                                        response += $"\n\n*Выберите распределение на семестр:*";
-
-                                        response += $"\n1. До и после смены расписания (Кол-во часов до смены: {hBefore}, Кол-во часов после смены: {hAfter})" +
+                                        response += $"\n\n*Выберите распределение на семестр:*" +
+                                                    $"\n1. До и после смены расписания (Кол-во часов до смены: {hBefore}, Кол-во часов после смены: {hAfter})" +
                                                     $"\n\n2. Только до смены расписания" +
                                                     $"\n\n3. Только после смены расписания";
 
@@ -355,6 +357,8 @@ namespace TeacherPreffsCollector
                                                 callbackData: $"Edit$Frequency${pfID}$2")});
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"3",
                                                 callbackData: $"Edit$Frequency${pfID}$3")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"Редактировать вручную",
+                                                callbackData: $"Edit$Frequency${pfID}$1${hours}$")});
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
                                                 callbackData: $"Cancel$Frequency${pfID}"),
                                                        InlineKeyboardButton.WithCallbackData(text: "Сбросить",
@@ -450,6 +454,77 @@ namespace TeacherPreffsCollector
                                                 callbackData: $"Choose$Frequency${pfID}${cArgs[4]}-{a}-{b}")});
                                         ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
                                                 callbackData: $"Edit$Frequency${pfID}$1")});
+                                    }
+
+                                    if (cArgs.Length == 6)
+                                    {
+                                        string[] h = cArgs[5].Split('-');
+                                        string filler = "";
+
+                                        int period = Convert.ToInt32(cArgs[3]);
+                                        int hoursLeft = Convert.ToInt32(cArgs[4]);
+
+                                        switch (cArgs[3])
+                                        {
+                                            case "1":
+                                                response += $"\nОсталось нераспределенных часов: *{hoursLeft}*" +
+                                                            $"\n\n*Выберите распределение на первую половину семестра:*" +
+                                                            $"\n      Выберите количество часов по первым неделям:";
+                                                filler = "-0-0-0";
+                                                break;
+                                            case "2":
+                                                response += $"\nТекущее распределение:" +
+                                                            $"\n        До смены: " +
+                                                            $"\n                По первым неделям - {h[0]}" +
+                                                            $"\nОсталось нераспределенных часов: *{hoursLeft}*" +
+                                                            $"\n\n*Выберите распределение на первую половину семестра:*" +
+                                                            $"\n      Выберите количество часов по вторым неделям:";
+                                                filler = "-0-0";
+                                                break;
+                                            case "3":
+                                                response += $"\nТекущее распределение:" +
+                                                            $"\n        До смены: " +
+                                                            $"\n                По первым неделям - {h[0]}" +
+                                                            $"\n                По вторым неделям - {h[1]}" +
+                                                            $"\nОсталось нераспределенных часов: *{hoursLeft}*" +
+                                                            $"\n\n*Выберите распределение на вторую половину семестра:*" +
+                                                            $"\n      Выберите количество часов по первым неделям:";
+                                                filler = "-0";
+                                                break;
+                                            case "4":
+                                                response += $"\nТекущее распределение:" +
+                                                            $"\n        До смены: " +
+                                                            $"\n                По первым неделям - {h[0]}" +
+                                                            $"\n                По вторым неделям - {h[1]}" +
+                                                            $"\n        После смены: " +
+                                                            $"\n                По первым неделям - {h[2]}" +
+                                                            $"\nОсталось нераспределенных часов: *{hoursLeft}*" +
+                                                            $"\n\n*Выберите распределение на вторую половину семестра:*" +
+                                                            $"\n      Выберите количество часов по вторым неделям:";
+                                                break;
+                                        }
+                                        if (period != 4)
+                                        {
+                                            for (i = 0; i * 4 < hoursLeft; i += 2)
+                                            {
+                                                ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{i}",
+                                                callbackData: $"Edit$Frequency${pfID}${period + 1}${hoursLeft - i * 4}${cArgs[5]}{i}-")});
+                                            }
+                                            ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{i} (Распределить все оставшиеся часы)",
+                                                callbackData: $"Choose$Frequency${pfID}${cArgs[5]}{i}{filler}")});
+                                        }
+                                        else
+                                        {
+                                            ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{hoursLeft / 4} (Распределить все оставшиеся часы)",
+                                                callbackData: $"Choose$Frequency${pfID}${cArgs[5]}{hoursLeft / 4}")});
+                                        }
+                                        if (period != 1) 
+                                            ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Edit$Frequency${pfID}${period - 1}${hoursLeft + Convert.ToInt32(h[period - 2]) * 4}${cArgs[5].Remove(cArgs[5].Length - 2, 2)}")});
+                                        else 
+                                            ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Edit$Frequency${pfID}")});
+
                                     }
                                     break;
 
@@ -600,7 +675,6 @@ namespace TeacherPreffsCollector
                                         else pref.Weekdays = null;
                                         break;
                                 }
-                                updateInfo = true;
                             }
                             else
                             {
@@ -622,8 +696,7 @@ namespace TeacherPreffsCollector
                                         {
                                             tch.TimeBegin = null;
                                             tch.TimeEnd = null;
-                                        }
-                                        
+                                        }                                       
                                         break;
 
                                     case "Weekdays":
@@ -637,9 +710,9 @@ namespace TeacherPreffsCollector
                                         }
                                         else tch.Weekdays = null;
                                         break;
-                                }
-                                updateInfo = true;
+                                }                                
                             }
+                            updateInfo = true;
                             entities.SaveChanges();
                             noti = "Данные успешно сохранены.";
                             break;
