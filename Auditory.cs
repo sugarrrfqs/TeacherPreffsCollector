@@ -26,7 +26,7 @@ namespace TeacherPreffsCollector
         public int Capacity { get; set; }
         public int Workplaces { get; set; }
         public string Equipment { get; set; }
-        public bool Projector { get; set; }
+        public int Projector { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Preference> Preference { get; set; }

@@ -14,8 +14,8 @@
           <Property Name="Number" Type="nvarchar" MaxLength="10" Nullable="false" />
           <Property Name="Capacity" Type="int" Nullable="false" />
           <Property Name="Workplaces" Type="int" Nullable="false" />
+          <Property Name="Projector" Type="int" Nullable="false" />
           <Property Name="Equipment" Type="nvarchar" MaxLength="200" />
-          <Property Name="Projector" Type="bit" Nullable="false" />
         </EntityType>
         <EntityType Name="Discipline">
           <Key>
@@ -57,6 +57,7 @@
           <Property Name="Weekdays" Type="nvarchar" MaxLength="50" />
           <Property Name="TimeBegin" Type="nvarchar" MaxLength="50" />
           <Property Name="TimeEnd" Type="nvarchar" MaxLength="50" />
+          <Property Name="AuditoryIDs" Type="nvarchar" MaxLength="300" />
         </EntityType>
         <Association Name="FK_Prefference_Auditory">
           <End Role="Auditory" Type="Self.Auditory" Multiplicity="0..1" />
@@ -126,7 +127,7 @@
           <Property Name="Capacity" Type="Int32" Nullable="false" />
           <Property Name="Workplaces" Type="Int32" Nullable="false" />
           <Property Name="Equipment" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
-          <Property Name="Projector" Type="Boolean" Nullable="false" />
+          <Property Name="Projector" Type="Int32" Nullable="false" />
           <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Auditory" FromRole="Auditory" ToRole="Preference" />
         </EntityType>
         <EntityType Name="Discipline">
@@ -174,6 +175,7 @@
           <Property Name="TimeBegin" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="TimeEnd" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Teacher" FromRole="Teacher" ToRole="Preference" />
+          <Property Name="AuditoryIDs" Type="String" MaxLength="300" FixedLength="false" Unicode="true" />
         </EntityType>
         <Association Name="FK_Prefference_Auditory">
           <End Role="Auditory" Type="Self.Auditory" Multiplicity="0..1" />
@@ -280,6 +282,7 @@
           <EntitySetMapping Name="Teacher">
             <EntityTypeMapping TypeName="TeacherPrefsModel.Teacher">
               <MappingFragment StoreEntitySet="Teacher">
+                <ScalarProperty Name="AuditoryIDs" ColumnName="AuditoryIDs" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="IdentificationCode" ColumnName="IdentificationCode" />
                 <ScalarProperty Name="ChatID" ColumnName="ChatID" />

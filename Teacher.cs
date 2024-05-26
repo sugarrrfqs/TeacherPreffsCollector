@@ -29,6 +29,7 @@ namespace TeacherPreffsCollector
         public string Weekdays { get; set; }
         public string TimeBegin { get; set; }
         public string TimeEnd { get; set; }
+        public string AuditoryIDs { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Preference> Preference { get; set; }

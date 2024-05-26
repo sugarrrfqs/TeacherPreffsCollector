@@ -12,6 +12,9 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using MongoDB.Driver;
 using System.Configuration;
+using System.Runtime.Serialization.Json;
+using System.IO;
+//using System.Text.Json;
 
 namespace TeacherPreffsCollector
 {
@@ -65,7 +68,7 @@ namespace TeacherPreffsCollector
                 "\n        Номер: " + aud.Number +
                 "\n        Вместимость: " + aud.Capacity +
                 "\n        Оборудование: " + aud.Equipment +
-                "\n        Проектор: " + aud.Projector;
+                "\n        Проектор: " + getProjectorStatus(aud.Projector);
             else response += "Не задана";
 
             response += "\n*Частота:* ";
@@ -90,6 +93,8 @@ namespace TeacherPreffsCollector
         }
         static string getTeacherInfo(Teacher tch)
         {
+            char[] sep = new char[] { ' ', ',' };
+
             string response = "";
 
             response += "*Ваши пожелания:*";
@@ -102,8 +107,60 @@ namespace TeacherPreffsCollector
             if (tch.TimeBegin != null) response += tch.TimeBegin + " - " + tch.TimeEnd;
             else response += "Не задано";
 
+            response += "\nАудитории: ";
+            if (tch.AuditoryIDs != null)
+            {
+                var auIDs = tch.AuditoryIDs.Split(sep, StringSplitOptions.RemoveEmptyEntries).ToList();
+                var auList = entities.Auditory.Where(x => auIDs.Contains(x.ID.ToString())).ToList();
+                List<Auditory> selectedAuditories = new List<Auditory>();
+
+                foreach (var a in auIDs) selectedAuditories.Add(auList.Single(x => x.ID.ToString() == a));
+
+                foreach (var au in selectedAuditories)
+                    response += getAuditoryInfoShort(au) + "\n                         ";
+            }
+            else response += "Не заданы";
+
             return response;
         }
+
+        static string getAuditoryInfo(Auditory au)
+        {
+            return "\n*Аудитория:* \n" +
+                   "Корпус: " + au.Department + "\n" +
+                   "Номер: " + au.Number + "\n" +
+                   "Вместимость: " + au.Capacity + "\n" +
+                   "Кол-во рабочих мест (компьютеров): " + au.Workplaces + "\n" +
+                   "Оборудование: " + au.Equipment + "\n" +
+                   "Проектор: " + getProjectorStatus(au.Projector) + "\n";
+        }
+
+        static string getAuditoryInfoShort(Auditory au)
+        {
+            return $"Корпус: {au.Department} Номер: {au.Number}";
+
+        }
+        
+        static string getProjectorStatus(int s)
+        {
+            switch (s)
+            {
+                case 0: return "Нет";
+                case 1: return "Низкое качество";
+                case 2: return "Высокое качество";
+                default: return "Неправильный код проектора";
+            }
+        }
+
+        //async static void ExportPreferences()
+        //{
+        //    string jsonString = JsonSerializer.Serialize(weatherForecast);
+        //    using (FileStream f = new FileStream(fileName, FileMode.OpenOrCreate))
+        //    {
+        //        DataContractJsonSerializer dcjs = new DataContractJsonSerializer(typeof(Stack<Engine>));
+        //        dcjs.w(f, Program.st);
+        //    }
+        //}
 
         async static Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
@@ -156,6 +213,7 @@ namespace TeacherPreffsCollector
                                             $"\n\nЧто вы хотите изменить?";
                                         ikb.Add(new[]
                                                 {
+                                                    InlineKeyboardButton.WithCallbackData(text: "Аудитории", callbackData: $"Edit$Auditory$-1"),
                                                     InlineKeyboardButton.WithCallbackData(text: "Дни недели", callbackData: $"Edit$Weekdays$-1"),
                                                     InlineKeyboardButton.WithCallbackData(text: "Время", callbackData: $"Edit$Time$-1")
                                                 });
@@ -266,15 +324,18 @@ namespace TeacherPreffsCollector
                     var callbackQuery = update.CallbackQuery;
                     var inlineMessageId = callbackQuery.InlineMessageId;
                     string[] cArgs = callbackQuery.Data.Split('$');
+
                     int pfID = Convert.ToInt32(cArgs[2]);
                     string response = "";
-                    int i = 0;
+                    int i = 0, j = 0;
                     bool clear = false;
                     bool updateInfo = false;
                     string noti = "";
+                    
 
                     Console.WriteLine($"Pressed inline button, Data = {callbackQuery.Data}");
 
+                    List<Auditory> auList = null;
                     string[] stime = { "8:00", "9:40", "11:30", "13:20", "15:00", "16:40", "18:20" };
                     string[] etime = {  "8:00 (Конец занятия: 9:30)",
                                                         "9:40 (Конец занятия: 9:30)",
@@ -285,14 +346,15 @@ namespace TeacherPreffsCollector
                                                         "18:20 (Конец занятия: 19:50)"};
                     string[] weekdays = { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб" };
                     string[] weekdaysFull = { "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота" };
-                    bool[] selectedWeekdays = { false, false, false, false, false, false };
+                    char[] sep = new char[] { ' ', ',' };
+                    string option = "";
 
                     InlineKeyboardButton[] buttonRow = new InlineKeyboardButton[2];
                     List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
                     Preference pref = null;
                     Teacher tch = null;
                     Discipline disc = null;
-                    //Auditory aud = null;
+                    Auditory aud = null;
 
                     switch (cArgs[0])
                     {
@@ -301,24 +363,92 @@ namespace TeacherPreffsCollector
                             {
                                 case "Auditory":
                                     response += callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор аудитории:*");
-                                    pref = entities.Preference.Single(x => x.ID == pfID);
-                                    disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
-                                    foreach (var au in entities.Auditory.Where(x => x.Capacity >= disc.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList())
+
+                                    if (pfID != -1)
                                     {
-                                        response += "\n*Аудитория:* \n" +
-                                            "Корпус: " + au.Department + "\n" +
-                                            "Номер: " + au.Number + "\n" +
-                                            "Вместимость: " + au.Capacity + "\n" +
-                                            "Кол-во рабочих мест (компьютеров): " + au.Workplaces + "\n" +
-                                            "Оборудование: " + au.Equipment + "\n" +
-                                            "Проектор: " + au.Projector + "\n";
-                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Корпус: " + au.Department + ", Номер: " + au.Number,
+                                        pref = entities.Preference.Single(x => x.ID == pfID);
+                                        disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
+                                        auList = entities.Auditory.Where(x => x.Capacity >= disc.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList();
+
+                                        foreach (var au in auList)
+                                        {
+                                            response += getAuditoryInfo(au);
+                                            if (pref.AuditoryID == au.ID) option = "✅ ";
+                                            ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{option} Корпус: " + au.Department + ", Номер: " + au.Number,
                                                 callbackData: $"Choose$Auditory${pfID}${au.ID}")});
-                                    }
-                                    ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                            option = "";
+                                        }
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
                                                 callbackData: $"Cancel$Auditory${pfID}"),
                                                    InlineKeyboardButton.WithCallbackData(text: "Сбросить",
-                                                callbackData: $"Choose$Auditory${pfID}$")});                               
+                                                callbackData: $"Choose$Auditory${pfID}$")});
+                                    }
+                                    else
+                                    {
+                                        auList = entities.Auditory.ToList();
+                                        List<string> selectedAuditoryIDs = new List<string>();
+                                        List<Auditory> selectedAuditories = new List<Auditory>();
+
+                                        if (cArgs.Length == 3)
+                                        {
+                                            foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == callbackQuery.Message.Chat.Id) tch = t;
+                                            if (tch.AuditoryIDs != null) selectedAuditoryIDs = tch.AuditoryIDs.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries).ToList();
+                                        }
+                                            
+                                        if (cArgs.Length == 5)
+                                        {
+                                            response = response
+                                                .Remove(response.IndexOf("Выбор аудитории:") + 16, response.Length - response.IndexOf("Выбор аудитории:") - 16)
+                                                .Replace("Выбор аудитории:", "*Выбор аудитории:*");
+
+                                            selectedAuditoryIDs = cArgs[3].Split(sep, StringSplitOptions.RemoveEmptyEntries).ToList();
+                                            selectedAuditoryIDs.Add(cArgs[4]);
+
+                                            for (i = 0; i < selectedAuditoryIDs.Count - 1; i++)
+                                                    if (cArgs[4] == selectedAuditoryIDs[i])
+                                                        selectedAuditoryIDs.RemoveAll(x => x == cArgs[4]);
+                                        }
+
+                                        response += "\nПорядок выбора аудиторий определяет приоритет при назначении аудитории для занятия. " +
+                                                    "Первая выбранная аудитория имеет наибольший приоритет, " +
+                                                    "вторая будет следующей по предпочтительности и т. д.\n" +
+                                                    "Обратите внимание, что если выбранная вами аудитория не подходи по вместимости для занятия, " +
+                                                    "то будет выбрана следующая по приоритетности подходящая аудитория.\n\n\n*Выбранные аудитории:*";
+
+                                        bool g = false;
+                                        string auIDs = "";
+                                        foreach (var au in selectedAuditoryIDs) selectedAuditories.Add(auList.Single(x => x.ID.ToString() == au));
+                                        //selectedAuditories = auList.Where(x => selectedAuditoryIDs.Contains(x.ID.ToString())).ToList();
+
+                                        for (i = 0; i < selectedAuditories.Count; i++)
+                                        {
+                                            if (g)
+                                            {
+                                                auIDs += ", ";
+                                            }
+                                            response += getAuditoryInfo(selectedAuditories[i]);
+                                            auIDs += selectedAuditoryIDs[i];
+                                            g = true;
+                                        }
+
+                                        response += "\n\n\n*Список всех аудиторий:*";
+                                        auList = auList.OrderBy(x => x.Department).ThenBy(x => x.Number).ToList();
+                                        foreach (var au in auList)
+                                        {
+                                            response += getAuditoryInfo(au);
+                                            if (selectedAuditoryIDs.Contains(au.ID.ToString())) option = "➖";
+                                            else option = "➕";
+                                            ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"{option} Корпус: " + au.Department + ", Номер: " + au.Number,
+                                                callbackData: $"Edit$Auditory${pfID}${auIDs}${au.ID}")});
+                                        }
+                                        ikb.Add(new[] {
+                                        InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Cancel$Auditory${pfID}"),
+                                        InlineKeyboardButton.WithCallbackData(text: "Сбросить",
+                                                callbackData: $"Choose$Auditory${pfID}$"),
+                                        InlineKeyboardButton.WithCallbackData(text: "Сохранить",
+                                                callbackData: $"Choose$Auditory${pfID}${auIDs}")});
+                                    }
                                     break;
 
                                 case "Frequency":
@@ -327,7 +457,6 @@ namespace TeacherPreffsCollector
                                     int hours = Convert.ToInt32(disc.Hours) - Convert.ToInt32(disc.Hours) % 8;
                                     int hBefore = 0, hAfter = 0, hPerWeek = 0, hPerFWeek = 0, hPerSWeek = 0;
                                     int a = 0, b = 0;
-
 
                                     hAfter = (hours - hours % 16) / 2;
                                     if (hours % 16 < 8) hBefore = hAfter;
@@ -568,8 +697,8 @@ namespace TeacherPreffsCollector
                                 case "Weekdays":
                                     response += callbackQuery.Message.Text
                                             .Replace("Что вы хотите изменить?", "*Выбор дней недели:\n*Выбранные дни:\n");
-                                    char[] sep = new char[] { ' ', ',' };
                                     string[] sw = new string[0];
+                                    bool[] selectedWeekdays = { false, false, false, false, false, false };
 
                                     if (cArgs.Length == 3)
                                     {
@@ -614,7 +743,9 @@ namespace TeacherPreffsCollector
                                     
                                     for (i = 0; i < weekdays.Length; i++)
                                     {
-                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: weekdays[i],
+                                        if (selectedWeekdays[i]) option = "➖ ";
+                                        else option = "➕ ";
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: option + weekdays[i],
                                                 callbackData: $"Edit$Weekdays${pfID}${wd}, {weekdays[i]}")});
                                     }                                 
                                     ikb.Add(new[] {
@@ -681,12 +812,37 @@ namespace TeacherPreffsCollector
                                 foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == callbackQuery.Message.Chat.Id) tch = t;
                                 switch (cArgs[1])
                                 {
+                                    case "Auditory":
+                                        if (cArgs[3] != "")
+                                        {
+                                            tch.AuditoryIDs = cArgs[3];
+                                            string[] sa = cArgs[3].Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                                            auList = entities.Auditory.ToList();
+                                            var discList = entities.Discipline.ToList();
+                                            
+                                            foreach (var p in entities.Preference.Where(x => x.TeacherID == tch.ID).ToList())
+                                            {
+                                                disc = discList.Single(x => x.ID == p.DisciplineID);
+                                                for (i = 0; i < sa.Length; i++)
+                                                {
+                                                    aud = auList.Single(x => x.ID.ToString() == sa[i]);
+
+                                                    if (aud.Capacity >= disc.StudentsCount)
+                                                    {
+                                                        p.AuditoryID = Convert.ToInt32(sa[i]);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else tch.AuditoryIDs = null;
+                                        break;
                                     case "Time":
                                         if (cArgs[3] != "" && cArgs[4] != "")
                                         {
                                             tch.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
                                             tch.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
-                                            foreach (var p in entities.Preference.ToList())
+                                            foreach (var p in entities.Preference.Where(x => x.TeacherID == tch.ID).ToList())
                                             {
                                                 p.TimeBegin = stime[Convert.ToInt32(cArgs[3])];
                                                 p.TimeEnd = stime[Convert.ToInt32(cArgs[4])];
@@ -703,7 +859,7 @@ namespace TeacherPreffsCollector
                                         if (cArgs[3] != "")
                                         {
                                             tch.Weekdays = cArgs[3];
-                                            foreach (var p in entities.Preference.ToList())
+                                            foreach (var p in entities.Preference.Where(x => x.TeacherID == tch.ID).ToList())
                                             {
                                                 p.Weekdays = cArgs[3];
                                             }
@@ -759,6 +915,7 @@ namespace TeacherPreffsCollector
                         else
                         ikb.Add(new[]
                         {
+                                InlineKeyboardButton.WithCallbackData(text: "Аудитории", callbackData: $"Edit$Auditory$-1"),
                                 InlineKeyboardButton.WithCallbackData(text: "Дни недели", callbackData: $"Edit$Weekdays${pfID}"),
                                 InlineKeyboardButton.WithCallbackData(text: "Время", callbackData: $"Edit$Time${pfID}")
                         });
