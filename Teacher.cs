@@ -21,7 +21,9 @@ namespace TeacherPreffsCollector
         }
     
         public string ID { get; set; }
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int IdentificationCode { get; set; }
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public string ChatID { get; set; }
         public string LastName { get; set; }
         public string FirstName { get; set; }
@@ -32,6 +34,7 @@ namespace TeacherPreffsCollector
         public string AuditoryIDs { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public virtual ICollection<Preference> Preference { get; set; }
     }
 }

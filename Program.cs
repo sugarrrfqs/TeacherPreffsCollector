@@ -12,16 +12,18 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using MongoDB.Driver;
 using System.Configuration;
-using System.Runtime.Serialization.Json;
 using System.IO;
-//using System.Text.Json;
+using System.Text.Json;
 
 namespace TeacherPreffsCollector
 {
     internal static class Program
     {
-        public static TeacherPrefsEntities entities = new TeacherPrefsEntities();
+        static string fileName = ""; // Использовать для задания абсолютного пути
+
+        static TeacherPrefsEntities entities = new TeacherPrefsEntities();
         static List<Teacher> teachers = entities.Teacher.ToList();
+        static char[] sep = new char[] { ' ', ',' };
 
         static async Task Main(string[] args)
         {
@@ -40,7 +42,34 @@ namespace TeacherPreffsCollector
             var me = await botClient.GetMeAsync();
 
             Console.WriteLine($"Start listening for @{me.Username}");
-            Console.ReadLine();
+
+            string c = Console.ReadLine();
+            while (c != "/exit")
+            {
+                switch (c)
+                {
+                    case "/et":
+                        Console.WriteLine(await ExportTeachers());
+                        break;
+                    case "/ep":
+                        Console.WriteLine(await ExportPreferences());
+                        break;
+                    case "/it":
+                        Console.WriteLine(await ImportTeachers());
+                        break;
+                    case "/id":
+                        Console.WriteLine(await ImportDisciplines());
+                        break;
+                    default:
+                        Console.WriteLine("Команда не найдена, список команд - " +
+                            "\n/et - Экспортировать данные о преподавателях" +
+                            "\n/ep - Экспортировать данные о пожеланиях" +
+                            "\n/it - Импортировать данные о преподавателях" +
+                            "\n/id - Импортировать данные о дисциплинах");
+                        break;
+                }
+                c = Console.ReadLine();
+            }
 
             // Send cancellation request to stop bot
             cts.Cancel();
@@ -152,16 +181,121 @@ namespace TeacherPreffsCollector
             }
         }
 
-        //async static void ExportPreferences()
-        //{
-        //    string jsonString = JsonSerializer.Serialize(weatherForecast);
-        //    using (FileStream f = new FileStream(fileName, FileMode.OpenOrCreate))
-        //    {
-        //        DataContractJsonSerializer dcjs = new DataContractJsonSerializer(typeof(Stack<Engine>));
-        //        dcjs.w(f, Program.st);
-        //    }
-        //}
+        async static Task<string> ExportPreferences()
+        {
+            List<Preference> prefs = new();
+            prefs = entities.Preference.ToList();
+            string response;
+            if (!Directory.Exists("Export\\Preferences")) Directory.CreateDirectory("Export\\Preferences");
+            string fn = fileName + "Export\\Preferences\\Preferences " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
 
+            try
+            {
+                using (FileStream f = new FileStream(fn, FileMode.OpenOrCreate))
+                {
+                    await JsonSerializer.SerializeAsync(f, prefs, new JsonSerializerOptions() { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles, WriteIndented = true });
+                }
+                response = $"Данные о пожеланиях успешно экспортированы, путь к файлу -\n{new FileInfo(fn).Directory.FullName}";
+            }
+            catch (Exception ex)
+            {
+                response = ex.Message;
+            }
+            return response;
+        }
+        async static Task<string> ExportTeachers()
+        {
+            List<Teacher> tchs = new();
+            tchs = entities.Teacher.ToList();
+            string response;
+            if (!Directory.Exists("Export\\Teachers")) Directory.CreateDirectory("Export\\Teachers");
+            string fn = fileName + "Export\\Teachers\\Teachers " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
+
+            try
+            {
+                using (FileStream f = new FileStream(fn, FileMode.OpenOrCreate))
+                {
+                    await JsonSerializer.SerializeAsync(f, tchs, new JsonSerializerOptions() { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles, WriteIndented = true });
+                }
+                response = $"Данные о преподавателях успешно экспортированы, путь к файлу -\n{new FileInfo(fn).Directory.FullName}";
+            }
+            catch (Exception ex)
+            {
+                response = ex.Message;
+            }
+            return response;
+        }
+
+        async static Task<string> ImportTeachers()
+        {
+            string response = "";
+            string fn = fileName + "Import\\Teachers\\Teachers.txt";
+            List<Teacher> allT = entities.Teacher.ToList();
+            List<Teacher> importingT = null;
+            Teacher updatingT = null;
+            Random rnd = new Random();
+            int code = 0;
+            bool codeUnique = false;
+            int updated = 0, added = 0;
+
+            try
+            {
+                using (FileStream f = new FileStream(fn, FileMode.OpenOrCreate))
+                {
+                    importingT = await JsonSerializer.DeserializeAsync<List<Teacher>>(f);
+                }
+                foreach (Teacher t in importingT)
+                {
+                    //Console.WriteLine($"ID = \"{t.ID}\" LastName = \"{t.LastName}\" FirstName = \"{t.FirstName}\"") ;
+                    if (allT.Where(x => x.ID == t.ID).Count() == 1) updatingT = entities.Teacher.Single(x => x.ID == t.ID);
+                    if (updatingT != null)
+                    {
+                        updatingT.FirstName = t.FirstName;
+                        updatingT.LastName = t.LastName;
+                        updatingT.MiddleName = t.MiddleName;
+                        updated++;
+                    }
+                    else
+                    {
+                        while (!codeUnique)
+                        {
+                            code = rnd.Next(899999) + 100000;
+                            codeUnique = true;
+                            foreach (Teacher tch in allT)
+                            {
+                                if (code == t.IdentificationCode) codeUnique = false;
+                            }
+                        }
+                        t.IdentificationCode = code;
+                        entities.Teacher.Add(t);
+                        added++;
+                    }
+                }
+                entities.SaveChanges();
+                teachers = entities.Teacher.ToList();
+                response = $"Данные о преподавателях успешно импортированы, количество обновленных записей - {updated}, добавленных записей - {added}";
+            }
+            catch (System.Data.Entity.Validation.DbEntityValidationException ex)
+            {
+                response = string.Join("\n", ex.EntityValidationErrors.SelectMany(x => x.ValidationErrors).Select(x => x.PropertyName + ": " + x.ErrorMessage));
+            }
+            catch (Exception ex)
+            {
+                response = ex.Message;
+                Console.WriteLine(ex.Message);
+            }
+            return response;
+        }
+
+        async static Task<string> ImportDisciplines()
+        {
+            string response = "";
+            return response;
+        }
+        //public static bool Equals(this Teacher x, Teacher y)
+        //{
+        //    return x.ID == y.ID;
+        //}
         async static Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
@@ -196,8 +330,8 @@ namespace TeacherPreffsCollector
                                     response += "Ваш список дисциплин:\n";
                                     foreach (Preference pf in entities.Preference.Where(x => x.TeacherID == tch.ID).ToList())
                                     {
-                                        response += 
-                                            getPrefInfo(pf) 
+                                        response +=
+                                            getPrefInfo(pf)
                                             + "\nИзменить пожелания: /preferencesQ" + pf.ID + "\n\n";
                                     }
                                     break;
@@ -206,10 +340,10 @@ namespace TeacherPreffsCollector
                                     if (cArgs.Length == 1)
                                     {
                                         response =
-                                            $"Вы можете задать дни недели и время занятий \"по умолчанию\", " +
+                                            $"Вы можете задать аудитории, дни недели и время занятий \"по умолчанию\", " +
                                             $"эти значения будут применены для всех ваших дисциплин, " +
                                             $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
-                                            getTeacherInfo(tch) + 
+                                            getTeacherInfo(tch) +
                                             $"\n\nЧто вы хотите изменить?";
                                         ikb.Add(new[]
                                                 {
@@ -252,13 +386,33 @@ namespace TeacherPreffsCollector
                                     break;
 
                                 case "/help":
-                                    response = "Полный список команд:" +
+                                    //if (tch.ID == "1") 
+                                    //    response = "Полный список команд:" +
+                                    //    "\n/exportTeachers - Экспортировать данные о преподавателях" +
+                                    //    "\n/exportPrefs - Экспортировать данные о пожеланиях" +
+                                    //    "\n/logout - Выйти из аккаунта";
+                                    //else
+                                        response = "Полный список команд:" +
                                         "\n/preferences - Задать пожелания \"по умолчанию\"" +
                                         "\n/disciplines - Получить список ваших дисциплин и пожеланий" +
-                                        "\n/logout - Выйти из аккаунта" +
-                                        "\n/help - Получить полный список команд";
+                                        "\n/logout - Выйти из аккаунта";                                 
                                     break;
 
+                                //case "/exportPrefs":
+                                //    if (tch.ID == "1") response = await ExportPreferences();
+                                //    else response = "У вас нет прав для выполнения этой команды.";
+                                //    break;
+
+                                //case "/exportTeachers":
+                                //    if (tch.ID == "1") response = await ExportTeachers();
+                                //    else response = "У вас нет прав для выполнения этой команды.";
+                                //    break;
+
+                                //case "/importTeachers":
+                                //    if (tch.ID == "1") response = await ImportTeachers();
+                                //    else response = "У вас нет прав для выполнения этой команды.";
+                                //    break;
+                                    
                                 case "/logout":
                                     foreach (var t in teachers)
                                     {
@@ -346,7 +500,6 @@ namespace TeacherPreffsCollector
                                                         "18:20 (Конец занятия: 19:50)"};
                     string[] weekdays = { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб" };
                     string[] weekdaysFull = { "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота" };
-                    char[] sep = new char[] { ' ', ',' };
                     string option = "";
 
                     InlineKeyboardButton[] buttonRow = new InlineKeyboardButton[2];
@@ -896,9 +1049,9 @@ namespace TeacherPreffsCollector
                                 "\n\nЧто вы хотите изменить?";
                         else
                             response =
-                                $"Вы можете задать дни недели и время занятий \"по умолчанию\", " +
+                                $"Вы можете задать аудитории, дни недели и время занятий \"по умолчанию\", " +
                                 $"эти значения будут применены для всех ваших дисциплин, " +
-                                $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /dp\n\n" +
+                                $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
                                 getTeacherInfo(tch) +
                                 $"\n\nЧто вы хотите изменить?";
                     }

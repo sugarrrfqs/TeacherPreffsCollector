@@ -29,6 +29,7 @@ namespace TeacherPreffsCollector
         public int Projector { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public virtual ICollection<Preference> Preference { get; set; }
     }
 }

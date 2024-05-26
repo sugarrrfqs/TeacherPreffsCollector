@@ -21,12 +21,13 @@
           <Key>
             <PropertyRef Name="ID" />
           </Key>
-          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="ID" Type="nvarchar" MaxLength="300" Nullable="false" StoreGeneratedPattern="Identity" />
           <Property Name="Name" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="Type" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="Group" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="StudentsCount" Type="int" />
           <Property Name="Hours" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Stream" Type="int" />
         </EntityType>
         <EntityType Name="Preference">
           <Key>
@@ -34,7 +35,7 @@
           </Key>
           <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="TeacherID" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="DisciplineID" Type="int" Nullable="false" />
+          <Property Name="DisciplineID" Type="nvarchar" MaxLength="300" Nullable="false" />
           <Property Name="AuditoryID" Type="int" />
           <Property Name="BCFirstWeek" Type="smallint" />
           <Property Name="BCSecondWeek" Type="smallint" />
@@ -134,13 +135,14 @@
           <Key>
             <PropertyRef Name="ID" />
           </Key>
-          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="ID" Type="String" Nullable="false" annotation:StoreGeneratedPattern="Identity" MaxLength="300" Unicode="true" FixedLength="false" />
           <Property Name="Name" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="Type" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="Group" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="StudentsCount" Type="Int32" />
           <Property Name="Hours" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Discipline" FromRole="Discipline" ToRole="Preference" />
+          <Property Name="Stream" Type="Int32" />
         </EntityType>
         <EntityType Name="Preference">
           <Key>
@@ -148,7 +150,7 @@
           </Key>
           <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="TeacherID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="DisciplineID" Type="Int32" Nullable="false" />
+          <Property Name="DisciplineID" Type="String" Nullable="false" MaxLength="300" Unicode="true" FixedLength="false" />
           <Property Name="AuditoryID" Type="Int32" />
           <Property Name="BCFirstWeek" Type="Int16" />
           <Property Name="BCSecondWeek" Type="Int16" />
@@ -253,6 +255,7 @@
           <EntitySetMapping Name="Discipline">
             <EntityTypeMapping TypeName="TeacherPrefsModel.Discipline">
               <MappingFragment StoreEntitySet="Discipline">
+                <ScalarProperty Name="Stream" ColumnName="Stream" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="Name" ColumnName="Name" />
                 <ScalarProperty Name="Type" ColumnName="Type" />
@@ -310,7 +313,7 @@
       <DesignerInfoPropertySet>
         <DesignerProperty Name="ValidateOnBuild" Value="true" />
         <DesignerProperty Name="EnablePluralization" Value="false" />
-        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="False" />
         <DesignerProperty Name="UseLegacyProvider" Value="false" />
         <DesignerProperty Name="CodeGenerationStrategy" Value="Нет" />
       </DesignerInfoPropertySet>
