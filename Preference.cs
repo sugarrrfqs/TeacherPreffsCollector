@@ -16,7 +16,6 @@ namespace TeacherPreffsCollector
     {
         public int ID { get; set; }
         public string TeacherID { get; set; }
-        public string DisciplineID { get; set; }
         public Nullable<int> AuditoryID { get; set; }
         public Nullable<short> BCFirstWeek { get; set; }
         public Nullable<short> BCSecondWeek { get; set; }
@@ -25,10 +24,16 @@ namespace TeacherPreffsCollector
         public string Weekdays { get; set; }
         public string TimeBegin { get; set; }
         public string TimeEnd { get; set; }
+        public string DisciplineIDs { get; set; }
+        public string DisciplineName { get; set; }
+        public string DisciplineType { get; set; }
+        public string Groups { get; set; }
+        public Nullable<int> Subgroup { get; set; }
+        public int StudentsCount { get; set; }
+        public int Hours { get; set; }
+        public Nullable<int> Stream { get; set; }
     
         public virtual Auditory Auditory { get; set; }
-        [System.Text.Json.Serialization.JsonIgnoreAttribute]
-        public virtual Discipline Discipline { get; set; }
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public virtual Teacher Teacher { get; set; }
     }

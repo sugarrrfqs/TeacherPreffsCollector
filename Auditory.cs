@@ -19,13 +19,16 @@ namespace TeacherPreffsCollector
         {
             this.Preference = new HashSet<Preference>();
         }
-    
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int ID { get; set; }
         public string Department { get; set; }
         public string Number { get; set; }
         public int Capacity { get; set; }
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int Workplaces { get; set; }
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public string Equipment { get; set; }
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int Projector { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]

@@ -10,7 +10,6 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using MongoDB.Driver;
 using System.Configuration;
 using System.IO;
 using System.Text.Json;
@@ -19,16 +18,20 @@ namespace TeacherPreffsCollector
 {
     internal static class Program
     {
-        static string fileName = ""; // Использовать для задания абсолютного пути
+        static Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+        static string fileDirectory = config.AppSettings.Settings["fileDirectory"].Value; // Использовать для задания папки для импорта/экспорта
 
         static TeacherPrefsEntities entities = new TeacherPrefsEntities();
         static List<Teacher> teachers = entities.Teacher.ToList();
         static char[] sep = new char[] { ' ', ',' };
+        static char[] sepForConsole = new char[] { '$' };
+        static char[] sepForYear = new char[] { ' ', '-' };
 
         static async Task Main(string[] args)
-        {
+        {         
             var botClient = new TelegramBotClient(ConfigurationManager.ConnectionStrings["botKey"].ConnectionString);
             CancellationTokenSource cts = new();
+            
             ReceiverOptions receiverOptions = new()
             {
                 AllowedUpdates = Array.Empty<UpdateType>()
@@ -41,12 +44,14 @@ namespace TeacherPreffsCollector
 
             var me = await botClient.GetMeAsync();
 
-            Console.WriteLine($"Start listening for @{me.Username}");
+            Console.WriteLine($"Started listening to @{me.Username}\n\nСписок команд - {getCommandList()}");
 
             string c = Console.ReadLine();
             while (c != "/exit")
             {
-                switch (c)
+                var Args = c.Split(sepForConsole, StringSplitOptions.RemoveEmptyEntries);
+
+                switch (Args[0])
                 {
                     case "/et":
                         Console.WriteLine(await ExportTeachers());
@@ -60,12 +65,17 @@ namespace TeacherPreffsCollector
                     case "/id":
                         Console.WriteLine(await ImportDisciplines());
                         break;
+                    case "/changeDirectory":
+                        if (Args.Length == 2)
+                        {
+                            config.AppSettings.Settings["fileDirectory"].Value = Args[1] + "\\";
+                            config.Save();
+                            ConfigurationManager.RefreshSection("appSettings");
+                            Console.WriteLine($"Директория для сохранения изменена на {config.AppSettings.Settings["fileDirectory"].Value}");
+                        }
+                        break;
                     default:
-                        Console.WriteLine("Команда не найдена, список команд - " +
-                            "\n/et - Экспортировать данные о преподавателях" +
-                            "\n/ep - Экспортировать данные о пожеланиях" +
-                            "\n/it - Импортировать данные о преподавателях" +
-                            "\n/id - Импортировать данные о дисциплинах");
+                        Console.WriteLine("Команда не найдена, список команд - " + getCommandList());
                         break;
                 }
                 c = Console.ReadLine();
@@ -78,17 +88,15 @@ namespace TeacherPreffsCollector
         static string getPrefInfo (Preference pref)
         {
             string response= "";
-            Discipline disc = null;
             Auditory aud = null;
-
-            disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
             aud = null;
             if (pref.AuditoryID != null) aud = entities.Auditory.Single(x => x.ID == pref.AuditoryID);
 
-            response += "*" + disc.Name + "*" +
-                "\nТип: " + disc.Type +
-                "\nГруппа: " + disc.Group + " (" + disc.StudentsCount + " чел.)" +
-                "\nОбщее кол-во часов в семестре: " + (Convert.ToInt32(disc.Hours) - Convert.ToInt32(disc.Hours) % 8) + "\n\n";
+            response += "*" + pref.DisciplineName + "*" +
+                "\nТип: " + pref.DisciplineType +
+                "\nГруппы: " + pref.Groups + " (" + pref.StudentsCount + " чел.)";
+            if (pref.Subgroup != null) response += "\nПодгруппа: " + pref.Subgroup;
+            response += "\nОбщее кол-во часов в семестре: " + (pref.Hours - (pref.Hours % 8)).ToString() + "\n\n";
 
             response += "*Ваши пожелания:*";
             response += "\n*Аудитория:* ";
@@ -122,8 +130,6 @@ namespace TeacherPreffsCollector
         }
         static string getTeacherInfo(Teacher tch)
         {
-            char[] sep = new char[] { ' ', ',' };
-
             string response = "";
 
             response += "*Ваши пожелания:*";
@@ -167,9 +173,12 @@ namespace TeacherPreffsCollector
         static string getAuditoryInfoShort(Auditory au)
         {
             return $"Корпус: {au.Department} Номер: {au.Number}";
-
         }
-        
+        static string getAuditoryInfoShortest(Auditory au)
+        {
+            return $"{au.Department} #{au.Number}";
+        }
+
         static string getProjectorStatus(int s)
         {
             switch (s)
@@ -183,11 +192,11 @@ namespace TeacherPreffsCollector
 
         async static Task<string> ExportPreferences()
         {
-            List<Preference> prefs = new();
-            prefs = entities.Preference.ToList();
             string response;
-            if (!Directory.Exists("Export\\Preferences")) Directory.CreateDirectory("Export\\Preferences");
-            string fn = fileName + "Export\\Preferences\\Preferences " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
+            if (!Directory.Exists($"{fileDirectory}Export\\Preferences")) Directory.CreateDirectory($"{fileDirectory}Export\\Preferences");
+            string fn = fileDirectory + "Export\\Preferences\\Preferences " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
+
+            List<Preference> prefs = entities.Preference.ToList();
 
             try
             {
@@ -205,11 +214,11 @@ namespace TeacherPreffsCollector
         }
         async static Task<string> ExportTeachers()
         {
-            List<Teacher> tchs = new();
-            tchs = entities.Teacher.ToList();
             string response;
-            if (!Directory.Exists("Export\\Teachers")) Directory.CreateDirectory("Export\\Teachers");
-            string fn = fileName + "Export\\Teachers\\Teachers " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
+            if (!Directory.Exists($"{fileDirectory}Export\\Teachers")) Directory.CreateDirectory($"{fileDirectory}Export\\Teachers");
+            string fn = fileDirectory + "Export\\Teachers\\Teachers " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
+            
+            List<Teacher> tchs = entities.Teacher.ToList();
 
             try
             {
@@ -229,14 +238,16 @@ namespace TeacherPreffsCollector
         async static Task<string> ImportTeachers()
         {
             string response = "";
-            string fn = fileName + "Import\\Teachers\\Teachers.txt";
+            string fn = "";
+            fn = fileDirectory + "Import\\Teachers\\Teachers.txt";
+            int updated = 0, added = 0;
+            int code = 0;
+            bool codeUnique = false;
+
             List<Teacher> allT = entities.Teacher.ToList();
             List<Teacher> importingT = null;
             Teacher updatingT = null;
             Random rnd = new Random();
-            int code = 0;
-            bool codeUnique = false;
-            int updated = 0, added = 0;
 
             try
             {
@@ -273,7 +284,7 @@ namespace TeacherPreffsCollector
                 }
                 entities.SaveChanges();
                 teachers = entities.Teacher.ToList();
-                response = $"Данные о преподавателях успешно импортированы, количество обновленных записей - {updated}, добавленных записей - {added}";
+                response = $"Данные о преподавателях успешно импортированы\nКоличество добавленных записей - {added}\nКоличество обновленных записей - {updated}";
             }
             catch (System.Data.Entity.Validation.DbEntityValidationException ex)
             {
@@ -282,7 +293,6 @@ namespace TeacherPreffsCollector
             catch (Exception ex)
             {
                 response = ex.Message;
-                Console.WriteLine(ex.Message);
             }
             return response;
         }
@@ -290,7 +300,123 @@ namespace TeacherPreffsCollector
         async static Task<string> ImportDisciplines()
         {
             string response = "";
+            string fn = fileDirectory + "Import\\Disciplines\\Disciplines.txt";
+            int addedToStream = 0, added = 0, createdStreams = 0;
+
+            bool contains = false, updating = false, addingToStream = false, creatingStreamCode = false;
+
+            List<Preference> allP = entities.Preference.ToList();
+            List<Preference> importingP = new List<Preference>();
+            Preference updatingP = null;
+
+            int newStreamCode = 0;
+            int? maxStreamCode = allP.Max(x => x.Stream);
+            if (maxStreamCode == null) maxStreamCode = 0;
+
+            try
+            {
+                using (FileStream f = new FileStream(fn, FileMode.OpenOrCreate))
+                {
+                    importingP = await JsonSerializer.DeserializeAsync<List<Preference>>(f);
+                }
+                foreach (Preference ip in importingP) 
+                {
+                    contains = false;
+                    foreach (Preference ep in allP)
+                    {
+                        
+                        if (ep.DisciplineIDs.Split(sep, StringSplitOptions.RemoveEmptyEntries).Contains(ip.DisciplineIDs))
+                        {
+                            //Console.WriteLine("такой уже есть disID - " + ip.DisciplineIDs + "\n");
+                            contains = true;
+                            break;
+                        }
+                    }
+                    if (!contains)
+                    {
+                        addingToStream = false;
+                        if (ip.DisciplineType == "Лек")
+                        {
+                            foreach (Preference ep in allP.Where(x => x.DisciplineType == "Лек"))
+                            {                              
+                                if (ep.TeacherID == ip.TeacherID) Console.WriteLine("1");
+                                if (ep.Groups
+                                            .Split(sep, StringSplitOptions.RemoveEmptyEntries)[0]
+                                            .Split(sepForYear, StringSplitOptions.RemoveEmptyEntries)[1] ==
+                                        ip.Groups
+                                            .Split(sep, StringSplitOptions.RemoveEmptyEntries)[0]
+                                            .Split(sepForYear, StringSplitOptions.RemoveEmptyEntries)[1]) Console.WriteLine("2");
+                                if (ep.DisciplineName == ip.DisciplineName) Console.WriteLine("3");
+                                if (!ep.Groups
+                                            .Split(sep, StringSplitOptions.RemoveEmptyEntries)
+                                            .Contains(ip.Groups)) Console.WriteLine("4");
+                                Console.WriteLine("\n");
+                                if (
+                                        ep.TeacherID == ip.TeacherID &&
+
+                                        ep.Groups
+                                            .Split(sep, StringSplitOptions.RemoveEmptyEntries)[0]
+                                            .Split(sepForYear, StringSplitOptions.RemoveEmptyEntries)[1] ==
+                                        ip.Groups
+                                            .Split(sep, StringSplitOptions.RemoveEmptyEntries)[0]
+                                            .Split(sepForYear, StringSplitOptions.RemoveEmptyEntries)[1] &&
+
+                                        ep.DisciplineName == ip.DisciplineName &&
+
+                                        !ep.Groups
+                                            .Split(sep, StringSplitOptions.RemoveEmptyEntries)
+                                            .Contains(ip.Groups)
+                                   )
+                                {
+                                    addingToStream = true;
+                                    creatingStreamCode = false;
+                                    if (ep.Stream == null)
+                                    {
+                                        newStreamCode = (int) maxStreamCode + 1;
+                                        maxStreamCode++;
+                                        creatingStreamCode = true;
+                                        createdStreams++;
+                                    }                                     
+
+                                    ep.DisciplineIDs += $", {ip.DisciplineIDs}";
+                                    ep.Groups += $", {ip.Groups}";
+                                    ep.StudentsCount += ip.StudentsCount;
+                                    if (creatingStreamCode) ep.Stream = newStreamCode;
+
+                                    addedToStream++;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!addingToStream)
+                        {
+                            entities.Preference.Add(ip);
+                            allP.Add(ip);
+                            added++;
+                        }
+                    }
+                }
+                entities.SaveChanges();
+                response = $"Данные о дисциплинах успешно импортированы\nКоличество добавленных записей - {added}\nКоличество записей, добавленных в потоки - {addedToStream}\nКоличество созданных потоков - {createdStreams}";
+            }
+            catch (System.Data.Entity.Validation.DbEntityValidationException ex)
+            {
+                response = string.Join("\n", ex.EntityValidationErrors.SelectMany(x => x.ValidationErrors).Select(x => x.PropertyName + ": " + x.ErrorMessage));
+            }
+            catch (Exception ex)
+            {
+                response = ex.Message + "\n@\n" + ex.StackTrace;
+            }
             return response;
+        }
+
+        static string getCommandList()
+        {
+            return "\n/et - Экспортировать данные о преподавателях" +
+                   "\n/ep - Экспортировать данные о пожеланиях" +
+                   "\n/it - Импортировать данные о преподавателях" +
+                   "\n/id - Импортировать данные о дисциплинах" +
+                   "\n/changeDirectory$<ВашаДиректорияДляСохранения> - Изменить директорию для импорта-экспорта данных";
         }
         //public static bool Equals(this Teacher x, Teacher y)
         //{
@@ -312,8 +438,8 @@ namespace TeacherPreffsCollector
 
                         Preference pref = null;
                         Teacher tch = null;
-                        Discipline disc = null;
-                        Auditory aud = null;
+                        //Discipline disc = null;
+                        //Auditory aud = null;
                         List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
 
                         foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == chatId) tch = t;
@@ -332,7 +458,7 @@ namespace TeacherPreffsCollector
                                     {
                                         response +=
                                             getPrefInfo(pf)
-                                            + "\nИзменить пожелания: /preferencesQ" + pf.ID + "\n\n";
+                                            + "\nИзменить пожелания: /preferencesQ" + pf.ID + "\n\n\n\n";
                                     }
                                     break;
 
@@ -378,7 +504,7 @@ namespace TeacherPreffsCollector
                                                 response = "Вы не имеете доступа к этой дисциплине.";
                                             }
                                         }
-                                        catch (Exception ex)
+                                        catch (Exception)
                                         {
                                             response = "Дисциплина не найдена.";
                                         }
@@ -506,7 +632,6 @@ namespace TeacherPreffsCollector
                     List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
                     Preference pref = null;
                     Teacher tch = null;
-                    Discipline disc = null;
                     Auditory aud = null;
 
                     switch (cArgs[0])
@@ -520,8 +645,7 @@ namespace TeacherPreffsCollector
                                     if (pfID != -1)
                                     {
                                         pref = entities.Preference.Single(x => x.ID == pfID);
-                                        disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
-                                        auList = entities.Auditory.Where(x => x.Capacity >= disc.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList();
+                                        auList = entities.Auditory.Where(x => x.Capacity >= pref.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList();
 
                                         foreach (var au in auList)
                                         {
@@ -606,15 +730,14 @@ namespace TeacherPreffsCollector
 
                                 case "Frequency":
                                     pref = entities.Preference.Single(x => x.ID == pfID);
-                                    disc = entities.Discipline.Single(x => x.ID == pref.DisciplineID);
-                                    int hours = Convert.ToInt32(disc.Hours) - Convert.ToInt32(disc.Hours) % 8;
+                                    int hours = pref.Hours - (pref.Hours % 8);
                                     int hBefore = 0, hAfter = 0, hPerWeek = 0, hPerFWeek = 0, hPerSWeek = 0;
                                     int a = 0, b = 0;
 
                                     hAfter = (hours - hours % 16) / 2;
                                     if (hours % 16 < 8) hBefore = hAfter;
                                     else hBefore = hours - hAfter;
-                                    if (disc.Type != "Лек") (hBefore, hAfter) = (hAfter, hBefore); //swap часов для практик и лаб
+                                    if (pref.DisciplineType != "Лек") (hBefore, hAfter) = (hAfter, hBefore); //swap часов для практик и лаб
 
                                     response += callbackQuery.Message.Text
                                         .Replace("Выбор частоты:", "*Выбор частоты:*")
@@ -971,16 +1094,14 @@ namespace TeacherPreffsCollector
                                             tch.AuditoryIDs = cArgs[3];
                                             string[] sa = cArgs[3].Split(sep, StringSplitOptions.RemoveEmptyEntries);
                                             auList = entities.Auditory.ToList();
-                                            var discList = entities.Discipline.ToList();
                                             
                                             foreach (var p in entities.Preference.Where(x => x.TeacherID == tch.ID).ToList())
                                             {
-                                                disc = discList.Single(x => x.ID == p.DisciplineID);
                                                 for (i = 0; i < sa.Length; i++)
                                                 {
                                                     aud = auList.Single(x => x.ID.ToString() == sa[i]);
 
-                                                    if (aud.Capacity >= disc.StudentsCount)
+                                                    if (aud.Capacity >= pref.StudentsCount)
                                                     {
                                                         p.AuditoryID = Convert.ToInt32(sa[i]);
                                                         break;

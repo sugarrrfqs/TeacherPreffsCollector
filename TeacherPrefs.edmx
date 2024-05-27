@@ -17,25 +17,20 @@
           <Property Name="Projector" Type="int" Nullable="false" />
           <Property Name="Equipment" Type="nvarchar" MaxLength="200" />
         </EntityType>
-        <EntityType Name="Discipline">
-          <Key>
-            <PropertyRef Name="ID" />
-          </Key>
-          <Property Name="ID" Type="nvarchar" MaxLength="300" Nullable="false" StoreGeneratedPattern="Identity" />
-          <Property Name="Name" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="Type" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="Group" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="StudentsCount" Type="int" />
-          <Property Name="Hours" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="Stream" Type="int" />
-        </EntityType>
         <EntityType Name="Preference">
           <Key>
             <PropertyRef Name="ID" />
           </Key>
           <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="TeacherID" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="DisciplineID" Type="nvarchar" MaxLength="300" Nullable="false" />
+          <Property Name="DisciplineIDs" Type="nvarchar" MaxLength="300" Nullable="false" />
+          <Property Name="DisciplineName" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="DisciplineType" Type="nvarchar" MaxLength="30" Nullable="false" />
+          <Property Name="Groups" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="Subgroup" Type="int" />
+          <Property Name="StudentsCount" Type="int" Nullable="false" />
+          <Property Name="Hours" Type="int" Nullable="false" />
+          <Property Name="Stream" Type="int" />
           <Property Name="AuditoryID" Type="int" />
           <Property Name="BCFirstWeek" Type="smallint" />
           <Property Name="BCSecondWeek" Type="smallint" />
@@ -72,18 +67,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_Prefference_Discipline">
-          <End Role="Discipline" Type="Self.Discipline" Multiplicity="1" />
-          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="Discipline">
-              <PropertyRef Name="ID" />
-            </Principal>
-            <Dependent Role="Preference">
-              <PropertyRef Name="DisciplineID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_Prefference_Teacher">
           <End Role="Teacher" Type="Self.Teacher" Multiplicity="1" />
           <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
@@ -98,15 +81,10 @@
         </Association>
         <EntityContainer Name="Хранилище TeacherPrefsModelContainer">
           <EntitySet Name="Auditory" EntityType="Self.Auditory" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="Discipline" EntityType="Self.Discipline" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Preference" EntityType="Self.Preference" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Teacher" EntityType="Self.Teacher" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_Prefference_Auditory" Association="Self.FK_Prefference_Auditory">
             <End Role="Auditory" EntitySet="Auditory" />
-            <End Role="Preference" EntitySet="Preference" />
-          </AssociationSet>
-          <AssociationSet Name="FK_Prefference_Discipline" Association="Self.FK_Prefference_Discipline">
-            <End Role="Discipline" EntitySet="Discipline" />
             <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
           <AssociationSet Name="FK_Prefference_Teacher" Association="Self.FK_Prefference_Teacher">
@@ -131,26 +109,12 @@
           <Property Name="Projector" Type="Int32" Nullable="false" />
           <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Auditory" FromRole="Auditory" ToRole="Preference" />
         </EntityType>
-        <EntityType Name="Discipline">
-          <Key>
-            <PropertyRef Name="ID" />
-          </Key>
-          <Property Name="ID" Type="String" Nullable="false" annotation:StoreGeneratedPattern="Identity" MaxLength="300" Unicode="true" FixedLength="false" />
-          <Property Name="Name" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Type" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Group" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="StudentsCount" Type="Int32" />
-          <Property Name="Hours" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Discipline" FromRole="Discipline" ToRole="Preference" />
-          <Property Name="Stream" Type="Int32" />
-        </EntityType>
         <EntityType Name="Preference">
           <Key>
             <PropertyRef Name="ID" />
           </Key>
           <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="TeacherID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="DisciplineID" Type="String" Nullable="false" MaxLength="300" Unicode="true" FixedLength="false" />
           <Property Name="AuditoryID" Type="Int32" />
           <Property Name="BCFirstWeek" Type="Int16" />
           <Property Name="BCSecondWeek" Type="Int16" />
@@ -160,8 +124,15 @@
           <Property Name="TimeBegin" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="TimeEnd" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <NavigationProperty Name="Auditory" Relationship="Self.FK_Prefference_Auditory" FromRole="Preference" ToRole="Auditory" />
-          <NavigationProperty Name="Discipline" Relationship="Self.FK_Prefference_Discipline" FromRole="Preference" ToRole="Discipline" />
           <NavigationProperty Name="Teacher" Relationship="Self.FK_Prefference_Teacher" FromRole="Preference" ToRole="Teacher" />
+          <Property Name="DisciplineIDs" Type="String" Nullable="false" MaxLength="300" FixedLength="false" Unicode="true" />
+          <Property Name="DisciplineName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="DisciplineType" Type="String" MaxLength="30" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Groups" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Subgroup" Type="Int32" />
+          <Property Name="StudentsCount" Type="Int32" Nullable="false" />
+          <Property Name="Hours" Type="Int32" Nullable="false" />
+          <Property Name="Stream" Type="Int32" />
         </EntityType>
         <EntityType Name="Teacher">
           <Key>
@@ -191,18 +162,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_Prefference_Discipline">
-          <End Role="Discipline" Type="Self.Discipline" Multiplicity="1" />
-          <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="Discipline">
-              <PropertyRef Name="ID" />
-            </Principal>
-            <Dependent Role="Preference">
-              <PropertyRef Name="DisciplineID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_Prefference_Teacher">
           <End Role="Teacher" Type="Self.Teacher" Multiplicity="1" />
           <End Role="Preference" Type="Self.Preference" Multiplicity="*" />
@@ -217,15 +176,10 @@
         </Association>
         <EntityContainer Name="TeacherPrefsEntities" annotation:LazyLoadingEnabled="true">
           <EntitySet Name="Auditory" EntityType="Self.Auditory" />
-          <EntitySet Name="Discipline" EntityType="Self.Discipline" />
           <EntitySet Name="Preference" EntityType="Self.Preference" />
           <EntitySet Name="Teacher" EntityType="Self.Teacher" />
           <AssociationSet Name="FK_Prefference_Auditory" Association="Self.FK_Prefference_Auditory">
             <End Role="Auditory" EntitySet="Auditory" />
-            <End Role="Preference" EntitySet="Preference" />
-          </AssociationSet>
-          <AssociationSet Name="FK_Prefference_Discipline" Association="Self.FK_Prefference_Discipline">
-            <End Role="Discipline" EntitySet="Discipline" />
             <End Role="Preference" EntitySet="Preference" />
           </AssociationSet>
           <AssociationSet Name="FK_Prefference_Teacher" Association="Self.FK_Prefference_Teacher">
@@ -252,25 +206,19 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
-          <EntitySetMapping Name="Discipline">
-            <EntityTypeMapping TypeName="TeacherPrefsModel.Discipline">
-              <MappingFragment StoreEntitySet="Discipline">
-                <ScalarProperty Name="Stream" ColumnName="Stream" />
-                <ScalarProperty Name="ID" ColumnName="ID" />
-                <ScalarProperty Name="Name" ColumnName="Name" />
-                <ScalarProperty Name="Type" ColumnName="Type" />
-                <ScalarProperty Name="Group" ColumnName="Group" />
-                <ScalarProperty Name="StudentsCount" ColumnName="StudentsCount" />
-                <ScalarProperty Name="Hours" ColumnName="Hours" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
           <EntitySetMapping Name="Preference">
             <EntityTypeMapping TypeName="TeacherPrefsModel.Preference">
               <MappingFragment StoreEntitySet="Preference">
+                <ScalarProperty Name="Stream" ColumnName="Stream" />
+                <ScalarProperty Name="Hours" ColumnName="Hours" />
+                <ScalarProperty Name="StudentsCount" ColumnName="StudentsCount" />
+                <ScalarProperty Name="Subgroup" ColumnName="Subgroup" />
+                <ScalarProperty Name="Groups" ColumnName="Groups" />
+                <ScalarProperty Name="DisciplineType" ColumnName="DisciplineType" />
+                <ScalarProperty Name="DisciplineName" ColumnName="DisciplineName" />
+                <ScalarProperty Name="DisciplineIDs" ColumnName="DisciplineIDs" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="TeacherID" ColumnName="TeacherID" />
-                <ScalarProperty Name="DisciplineID" ColumnName="DisciplineID" />
                 <ScalarProperty Name="AuditoryID" ColumnName="AuditoryID" />
                 <ScalarProperty Name="BCFirstWeek" ColumnName="BCFirstWeek" />
                 <ScalarProperty Name="BCSecondWeek" ColumnName="BCSecondWeek" />

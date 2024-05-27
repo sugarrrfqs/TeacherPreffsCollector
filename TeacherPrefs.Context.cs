@@ -26,7 +26,6 @@ namespace TeacherPreffsCollector
         }
     
         public virtual DbSet<Auditory> Auditory { get; set; }
-        public virtual DbSet<Discipline> Discipline { get; set; }
         public virtual DbSet<Preference> Preference { get; set; }
         public virtual DbSet<Teacher> Teacher { get; set; }
     }
