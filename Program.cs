@@ -83,6 +83,7 @@ namespace TeacherPreffsCollector
                             config.AppSettings.Settings["fileDirectory"].Value = cArgs[1] + "\\";
                             config.Save();
                             ConfigurationManager.RefreshSection("appSettings");
+                            fileDirectory = config.AppSettings.Settings["fileDirectory"].Value;
                             Console.WriteLine($"Директория для сохранения изменена на {cArgs[1]}");
                         }
                         else 
@@ -101,8 +102,6 @@ namespace TeacherPreffsCollector
                 }
                 c = Console.ReadLine();
             }
-
-            // Send cancellation request to stop bot
             cts.Cancel();
         }
 
@@ -227,7 +226,6 @@ namespace TeacherPreffsCollector
             if (!Directory.Exists($"{fileDirectory}Export\\Preferences")) Directory.CreateDirectory($"{fileDirectory}Export\\Preferences");
             string fn = fileDirectory + "Export\\Preferences\\Preferences " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
             string auInfo = "";
-            bool moreThanOne = false;
 
             List<Preference> prefs = entities.Preference.ToList();
 
@@ -237,9 +235,7 @@ namespace TeacherPreffsCollector
                 {
                     if (pref.AuditoryID != null)
                     {
-                        moreThanOne = false;
                         auInfo += $"{getAuditoryInfoShortest(entities.Auditory.Single(x => x.ID == pref.AuditoryID))}";
-                        moreThanOne = true;
                         pref.AuditoryInfo = auInfo;
                         auInfo = "";
                     }
@@ -365,11 +361,10 @@ namespace TeacherPreffsCollector
             string fn = fileDirectory + "Import\\Disciplines\\Disciplines.txt";
             int addedToStream = 0, added = 0, createdStreams = 0;
 
-            bool contains = false, updating = false, addingToStream = false, creatingStreamCode = false;
+            bool contains = false, addingToStream = false, creatingStreamCode = false;
 
             List<Preference> allP = entities.Preference.ToList();
             List<Preference> importingP = new List<Preference>();
-            Preference updatingP = null;
 
             int newStreamCode = 0;
             int? maxStreamCode = allP.Max(x => x.Stream);
@@ -633,7 +628,7 @@ namespace TeacherPreffsCollector
 
                     int pfID = Convert.ToInt32(cArgs[2]);
                     string response = "";
-                    int i = 0, j = 0;
+                    int i = 0;
                     bool clear = false;
                     bool updateInfo = false;
                     string noti = "";
