@@ -13,6 +13,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Configuration;
 using System.IO;
 using System.Text.Json;
+using System.Text.Unicode;
+using System.Text.Encodings.Web;
 
 namespace TeacherPreffsCollector
 {
@@ -20,6 +22,12 @@ namespace TeacherPreffsCollector
     {
         static Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
         static string fileDirectory = config.AppSettings.Settings["fileDirectory"].Value; // Использовать для задания папки для импорта/экспорта
+        static JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions()
+        {
+            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic),
+            WriteIndented = true
+        };
 
         static TeacherPrefsEntities entities = new TeacherPrefsEntities();
         static List<Teacher> teachers = entities.Teacher.ToList();
@@ -49,31 +57,44 @@ namespace TeacherPreffsCollector
             string c = Console.ReadLine();
             while (c != "/exit")
             {
-                var Args = c.Split(sepForConsole, StringSplitOptions.RemoveEmptyEntries);
+                var cArgs = c.Split(sepForConsole, StringSplitOptions.RemoveEmptyEntries);
 
-                switch (Args[0])
+                switch (cArgs[0])
                 {
                     case "/et":
                         Console.WriteLine(await ExportTeachers());
                         break;
+
                     case "/ep":
                         Console.WriteLine(await ExportPreferences());
                         break;
+
                     case "/it":
                         Console.WriteLine(await ImportTeachers());
                         break;
+
                     case "/id":
                         Console.WriteLine(await ImportDisciplines());
                         break;
+
                     case "/changeDirectory":
-                        if (Args.Length == 2)
+                        if (cArgs.Length == 2)
                         {
-                            config.AppSettings.Settings["fileDirectory"].Value = Args[1] + "\\";
+                            config.AppSettings.Settings["fileDirectory"].Value = cArgs[1] + "\\";
                             config.Save();
                             ConfigurationManager.RefreshSection("appSettings");
-                            Console.WriteLine($"Директория для сохранения изменена на {config.AppSettings.Settings["fileDirectory"].Value}");
+                            Console.WriteLine($"Директория для сохранения изменена на {cArgs[1]}");
+                        }
+                        else 
+                        {
+                            Console.WriteLine($"Директория для сохранения не указана или использован неверный формат команды");
                         }
                         break;
+
+                    case "/help":
+                        Console.WriteLine(getCommandList());
+                        break;
+
                     default:
                         Console.WriteLine("Команда не найдена, список команд - " + getCommandList());
                         break;
@@ -89,7 +110,6 @@ namespace TeacherPreffsCollector
         {
             string response= "";
             Auditory aud = null;
-            aud = null;
             if (pref.AuditoryID != null) aud = entities.Auditory.Single(x => x.ID == pref.AuditoryID);
 
             response += "*" + pref.DisciplineName + "*" +
@@ -128,6 +148,7 @@ namespace TeacherPreffsCollector
 
             return response;
         }
+
         static string getTeacherInfo(Teacher tch)
         {
             string response = "";
@@ -174,9 +195,10 @@ namespace TeacherPreffsCollector
         {
             return $"Корпус: {au.Department} Номер: {au.Number}";
         }
+
         static string getAuditoryInfoShortest(Auditory au)
         {
-            return $"{au.Department} #{au.Number}";
+            return $"{au.Department}#{au.Number}";
         }
 
         static string getProjectorStatus(int s)
@@ -190,19 +212,41 @@ namespace TeacherPreffsCollector
             }
         }
 
+        static string getCommandList()
+        {
+            return "\n/et - Экспортировать данные о преподавателях" +
+                   "\n/ep - Экспортировать данные о пожеланиях" +
+                   "\n/it - Импортировать данные о преподавателях" +
+                   "\n/id - Импортировать данные о дисциплинах" +
+                   "\n/changeDirectory$<ВашаДиректорияДляСохранения> - Изменить директорию для импорта-экспорта данных";
+        }
+
         async static Task<string> ExportPreferences()
         {
             string response;
             if (!Directory.Exists($"{fileDirectory}Export\\Preferences")) Directory.CreateDirectory($"{fileDirectory}Export\\Preferences");
             string fn = fileDirectory + "Export\\Preferences\\Preferences " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
+            string auInfo = "";
+            bool moreThanOne = false;
 
             List<Preference> prefs = entities.Preference.ToList();
 
             try
             {
+                foreach (Preference pref in prefs)
+                {
+                    if (pref.AuditoryID != null)
+                    {
+                        moreThanOne = false;
+                        auInfo += $"{getAuditoryInfoShortest(entities.Auditory.Single(x => x.ID == pref.AuditoryID))}";
+                        moreThanOne = true;
+                        pref.AuditoryInfo = auInfo;
+                        auInfo = "";
+                    }
+                }
                 using (FileStream f = new FileStream(fn, FileMode.OpenOrCreate))
                 {
-                    await JsonSerializer.SerializeAsync(f, prefs, new JsonSerializerOptions() { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles, WriteIndented = true });
+                    await JsonSerializer.SerializeAsync(f, prefs, jsonSerializerOptions);
                 }
                 response = $"Данные о пожеланиях успешно экспортированы, путь к файлу -\n{new FileInfo(fn).Directory.FullName}";
             }
@@ -212,19 +256,37 @@ namespace TeacherPreffsCollector
             }
             return response;
         }
+
         async static Task<string> ExportTeachers()
         {
             string response;
             if (!Directory.Exists($"{fileDirectory}Export\\Teachers")) Directory.CreateDirectory($"{fileDirectory}Export\\Teachers");
             string fn = fileDirectory + "Export\\Teachers\\Teachers " + DateTime.Now.ToString().Replace(":", "-") + ".txt";
-            
+            string auInfo = "";
+            bool moreThanOne = false;
+
             List<Teacher> tchs = entities.Teacher.ToList();
 
             try
             {
+                foreach (Teacher t in tchs)
+                {
+                    if (t.AuditoryIDs != null)
+                    {
+                        moreThanOne = false;
+                        foreach (string au in t.AuditoryIDs.Split(sep, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            if (moreThanOne) auInfo += ", ";
+                            auInfo += $"{getAuditoryInfoShortest(entities.Auditory.Single(x => x.ID.ToString() == au))}";
+                            moreThanOne = true;
+                        }
+                        t.AuditoryInfo = auInfo;
+                        auInfo = "";
+                    }
+                }
                 using (FileStream f = new FileStream(fn, FileMode.OpenOrCreate))
                 {
-                    await JsonSerializer.SerializeAsync(f, tchs, new JsonSerializerOptions() { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles, WriteIndented = true });
+                    await JsonSerializer.SerializeAsync(f, tchs, jsonSerializerOptions);
                 }
                 response = $"Данные о преподавателях успешно экспортированы, путь к файлу -\n{new FileInfo(fn).Directory.FullName}";
             }
@@ -327,7 +389,6 @@ namespace TeacherPreffsCollector
                         
                         if (ep.DisciplineIDs.Split(sep, StringSplitOptions.RemoveEmptyEntries).Contains(ip.DisciplineIDs))
                         {
-                            //Console.WriteLine("такой уже есть disID - " + ip.DisciplineIDs + "\n");
                             contains = true;
                             break;
                         }
@@ -410,18 +471,6 @@ namespace TeacherPreffsCollector
             return response;
         }
 
-        static string getCommandList()
-        {
-            return "\n/et - Экспортировать данные о преподавателях" +
-                   "\n/ep - Экспортировать данные о пожеланиях" +
-                   "\n/it - Импортировать данные о преподавателях" +
-                   "\n/id - Импортировать данные о дисциплинах" +
-                   "\n/changeDirectory$<ВашаДиректорияДляСохранения> - Изменить директорию для импорта-экспорта данных";
-        }
-        //public static bool Equals(this Teacher x, Teacher y)
-        //{
-        //    return x.ID == y.ID;
-        //}
         async static Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
@@ -430,7 +479,7 @@ namespace TeacherPreffsCollector
                 {
                     Message sentMessage;
                     var message = update.Message;
-                    // Only process text messages
+
                     if (message.Text is not null)
                     {
                         var messageText = message.Text;
@@ -438,8 +487,6 @@ namespace TeacherPreffsCollector
 
                         Preference pref = null;
                         Teacher tch = null;
-                        //Discipline disc = null;
-                        //Auditory aud = null;
                         List<InlineKeyboardButton[]> ikb = new List<InlineKeyboardButton[]>();
 
                         foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == chatId) tch = t;
@@ -512,32 +559,11 @@ namespace TeacherPreffsCollector
                                     break;
 
                                 case "/help":
-                                    //if (tch.ID == "1") 
-                                    //    response = "Полный список команд:" +
-                                    //    "\n/exportTeachers - Экспортировать данные о преподавателях" +
-                                    //    "\n/exportPrefs - Экспортировать данные о пожеланиях" +
-                                    //    "\n/logout - Выйти из аккаунта";
-                                    //else
-                                        response = "Полный список команд:" +
-                                        "\n/preferences - Задать пожелания \"по умолчанию\"" +
-                                        "\n/disciplines - Получить список ваших дисциплин и пожеланий" +
-                                        "\n/logout - Выйти из аккаунта";                                 
+                                    response = "Полный список команд:" +
+                                    "\n/preferences - Задать пожелания \"по умолчанию\"" +
+                                    "\n/disciplines - Получить список ваших дисциплин и пожеланий" +
+                                    "\n/logout - Выйти из аккаунта";                                 
                                     break;
-
-                                //case "/exportPrefs":
-                                //    if (tch.ID == "1") response = await ExportPreferences();
-                                //    else response = "У вас нет прав для выполнения этой команды.";
-                                //    break;
-
-                                //case "/exportTeachers":
-                                //    if (tch.ID == "1") response = await ExportTeachers();
-                                //    else response = "У вас нет прав для выполнения этой команды.";
-                                //    break;
-
-                                //case "/importTeachers":
-                                //    if (tch.ID == "1") response = await ImportTeachers();
-                                //    else response = "У вас нет прав для выполнения этой команды.";
-                                //    break;
                                     
                                 case "/logout":
                                     foreach (var t in teachers)
@@ -686,10 +712,13 @@ namespace TeacherPreffsCollector
                                                         selectedAuditoryIDs.RemoveAll(x => x == cArgs[4]);
                                         }
 
-                                        response += "\nПорядок выбора аудиторий определяет приоритет при назначении аудитории для занятия. " +
+                                        response += "\n*Порядок выбора аудиторий определяет приоритет при назначении аудитории для занятия.* " +
                                                     "Первая выбранная аудитория имеет наибольший приоритет, " +
                                                     "вторая будет следующей по предпочтительности и т. д.\n" +
-                                                    "Обратите внимание, что если выбранная вами аудитория не подходи по вместимости для занятия, " +
+                                                    "Чтобы автоматическое заполнение пожеланий для дисциплин работало лучше, " +
+                                                    "*в первую очередь указывайте аудитории для практик и лабораторных, " +
+                                                    "потом только аудитории для лекций*\n" +
+                                                    "Обратите внимание, что если выбранная вами аудитория не подходит по вместимости для занятия, " +
                                                     "то будет выбрана следующая по приоритетности подходящая аудитория.\n\n\n*Выбранные аудитории:*";
 
                                         bool g = false;
@@ -1101,7 +1130,7 @@ namespace TeacherPreffsCollector
                                                 {
                                                     aud = auList.Single(x => x.ID.ToString() == sa[i]);
 
-                                                    if (aud.Capacity >= pref.StudentsCount)
+                                                    if (aud.Capacity >= p.StudentsCount)
                                                     {
                                                         p.AuditoryID = Convert.ToInt32(sa[i]);
                                                         break;

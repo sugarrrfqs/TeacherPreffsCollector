@@ -16,6 +16,8 @@ namespace TeacherPreffsCollector
     {
         public int ID { get; set; }
         public string TeacherID { get; set; }
+        public string AuditoryInfo { get; set; } ///////////////////////////////
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public Nullable<int> AuditoryID { get; set; }
         public Nullable<short> BCFirstWeek { get; set; }
         public Nullable<short> BCSecondWeek { get; set; }
@@ -32,7 +34,8 @@ namespace TeacherPreffsCollector
         public int StudentsCount { get; set; }
         public int Hours { get; set; }
         public Nullable<int> Stream { get; set; }
-    
+
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public virtual Auditory Auditory { get; set; }
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public virtual Teacher Teacher { get; set; }
