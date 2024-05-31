@@ -25,19 +25,16 @@ namespace TeacherPreffsCollector
         public int IdentificationCode { get; set; }
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public string ChatID { get; set; }
-        public string LastName { get; set; }
-        public string FirstName { get; set; }
-        public string MiddleName { get; set; }
-        [System.Text.Json.Serialization.JsonIgnoreAttribute]
-        public string AuditoryIDs { get; set; }
-        public string AuditoryInfo { get; set; } ///////////////////////////////
         public string Weekdays { get; set; }
         public string TimeBegin { get; set; }
         public string TimeEnd { get; set; }
-
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
+        public string AuditoryIDs { get; set; }
+        public string AuditoryInfo { get; set; }//////////////
+        public string Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Preference> Preference { get; set; }
     }
 }

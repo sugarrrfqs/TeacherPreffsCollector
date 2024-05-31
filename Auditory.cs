@@ -23,6 +23,7 @@ namespace TeacherPreffsCollector
         public int ID { get; set; }
         public string Department { get; set; }
         public string Number { get; set; }
+        [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int Capacity { get; set; }
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int Workplaces { get; set; }
@@ -30,9 +31,8 @@ namespace TeacherPreffsCollector
         public string Equipment { get; set; }
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
         public int Projector { get; set; }
-    
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         [System.Text.Json.Serialization.JsonIgnoreAttribute]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Preference> Preference { get; set; }
     }
 }

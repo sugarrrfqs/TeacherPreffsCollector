@@ -25,8 +25,8 @@
           <Property Name="TeacherID" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="DisciplineIDs" Type="nvarchar" MaxLength="300" Nullable="false" />
           <Property Name="DisciplineName" Type="nvarchar" MaxLength="100" Nullable="false" />
-          <Property Name="DisciplineType" Type="nvarchar" MaxLength="30" Nullable="false" />
-          <Property Name="Groups" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="DisciplineType" Type="int" Nullable="false" />
+          <Property Name="Groups" Type="nvarchar" MaxLength="1000" Nullable="false" />
           <Property Name="Subgroup" Type="int" />
           <Property Name="StudentsCount" Type="int" Nullable="false" />
           <Property Name="Hours" Type="int" Nullable="false" />
@@ -47,9 +47,7 @@
           <Property Name="ID" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="IdentificationCode" Type="int" Nullable="false" />
           <Property Name="ChatID" Type="nvarchar" MaxLength="50" />
-          <Property Name="LastName" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="FirstName" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="MiddleName" Type="nvarchar" MaxLength="50" />
+          <Property Name="Name" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="Weekdays" Type="nvarchar" MaxLength="50" />
           <Property Name="TimeBegin" Type="nvarchar" MaxLength="50" />
           <Property Name="TimeEnd" Type="nvarchar" MaxLength="50" />
@@ -127,8 +125,8 @@
           <NavigationProperty Name="Teacher" Relationship="Self.FK_Prefference_Teacher" FromRole="Preference" ToRole="Teacher" />
           <Property Name="DisciplineIDs" Type="String" Nullable="false" MaxLength="300" FixedLength="false" Unicode="true" />
           <Property Name="DisciplineName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="DisciplineType" Type="String" MaxLength="30" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="Groups" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="DisciplineType" Type="Int32" Nullable="false" />
+          <Property Name="Groups" Type="String" MaxLength="1000" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="Subgroup" Type="Int32" />
           <Property Name="StudentsCount" Type="Int32" Nullable="false" />
           <Property Name="Hours" Type="Int32" Nullable="false" />
@@ -141,14 +139,12 @@
           <Property Name="ID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <Property Name="IdentificationCode" Type="Int32" Nullable="false" />
           <Property Name="ChatID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
-          <Property Name="LastName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="FirstName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="MiddleName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="Weekdays" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="TimeBegin" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="TimeEnd" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <NavigationProperty Name="Preference" Relationship="Self.FK_Prefference_Teacher" FromRole="Teacher" ToRole="Preference" />
           <Property Name="AuditoryIDs" Type="String" MaxLength="300" FixedLength="false" Unicode="true" />
+          <Property Name="Name" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
         </EntityType>
         <Association Name="FK_Prefference_Auditory">
           <End Role="Auditory" Type="Self.Auditory" Multiplicity="0..1" />
@@ -233,13 +229,11 @@
           <EntitySetMapping Name="Teacher">
             <EntityTypeMapping TypeName="TeacherPrefsModel.Teacher">
               <MappingFragment StoreEntitySet="Teacher">
+                <ScalarProperty Name="Name" ColumnName="Name" />
                 <ScalarProperty Name="AuditoryIDs" ColumnName="AuditoryIDs" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
                 <ScalarProperty Name="IdentificationCode" ColumnName="IdentificationCode" />
                 <ScalarProperty Name="ChatID" ColumnName="ChatID" />
-                <ScalarProperty Name="LastName" ColumnName="LastName" />
-                <ScalarProperty Name="FirstName" ColumnName="FirstName" />
-                <ScalarProperty Name="MiddleName" ColumnName="MiddleName" />
                 <ScalarProperty Name="Weekdays" ColumnName="Weekdays" />
                 <ScalarProperty Name="TimeBegin" ColumnName="TimeBegin" />
                 <ScalarProperty Name="TimeEnd" ColumnName="TimeEnd" />
