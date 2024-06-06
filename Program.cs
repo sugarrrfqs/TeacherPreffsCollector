@@ -895,13 +895,16 @@ namespace TeacherPreffsCollector
                                         List<string> selectedAuditoryIDs = new List<string>();
                                         List<Auditory> selectedAuditories = new List<Auditory>();
 
+                                        int p = -1;
+                                        int k = -1;
+
                                         if (cArgs.Length == 3)
                                         {
                                             foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == callbackQuery.Message.Chat.Id) tch = t;
                                             if (tch.AuditoryIDs != null) selectedAuditoryIDs = tch.AuditoryIDs.ToString().Split(sep, StringSplitOptions.RemoveEmptyEntries).ToList();
                                         }
 
-                                        if (cArgs.Length == 5)
+                                        if (cArgs.Length == 7)
                                         {
                                             //response = response
                                             //    .Remove(response.IndexOf("Выбор аудитории:") + 16, response.Length - response.IndexOf("Выбор аудитории:") - 16)
@@ -943,11 +946,25 @@ namespace TeacherPreffsCollector
                                         //            "Обратите внимание, что если выбранная вами аудитория не подходит по вместимости для занятия, " +
                                         //            "то будет выбрана следующая по приоритетности подходящая аудитория.\n\n\n*Выбранные аудитории:*";
                                         //for (i = 0; i < selectedAuditories.Count; i++) response += getAuditoryInfoShortest(selectedAuditories[i]);
+                                        if (cArgs.Length == 7)
+                                        {
+                                            if (cArgs[5] != "-1")
+                                            {
+                                                p = Convert.ToInt32(cArgs[5]);
+                                                auList = auList.Where(x => x.Projector == p).ToList();
 
+                                            }
+                                            if (cArgs[6] != "-1")
+                                            {
+                                                k = Convert.ToInt32(cArgs[6]);
+                                                auList = auList.Where(x => x.Department == getDepartmentInfo(k)).ToList();
+
+                                            }
+                                        }
                                         response += "*Список всех аудиторий:*\n";
                                         auList = auList.OrderBy(x => x.Department).ThenBy(x => x.Number).ToList();
 
-                                        i = 0;
+                                        i = 0;                                       
                                         foreach (var au in auList)
                                         {
                                             response += getAuditoryInfoShorter(au) + "\n\n";
@@ -955,7 +972,7 @@ namespace TeacherPreffsCollector
                                             else option = "➕";
 
                                             bRow[i] = InlineKeyboardButton.WithCallbackData(text: $"{option} {getAuditoryInfoShort(au)}",
-                                                callbackData: $"Edit$Auditory${pfID}${auIDs}${au.ID}");
+                                                callbackData: $"Edit$Auditory${pfID}${auIDs}${au.ID}${p}${k}");
                                             i++;
                                             if (i == 3)
                                             {
@@ -995,10 +1012,10 @@ namespace TeacherPreffsCollector
                                             g = true;
                                         }
 
-                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"Проектор:",
-                                                callbackData: $"Sort$Auditory${pfID}${2}${-1}${auIDs}"),
-                                                   InlineKeyboardButton.WithCallbackData(text: $"Корпус:",
-                                                callbackData: $"Sort$Auditory${pfID}${-1}${0}${auIDs}")});
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"Проектор: {getProjectorInfo(p)}",
+                                                callbackData: $"Sort$Auditory${pfID}${getNextProjectorCode(p)}${k}${auIDs}"),
+                                                   InlineKeyboardButton.WithCallbackData(text: $"Корпус: {getDepartmentInfo(k)}",
+                                                callbackData: $"Sort$Auditory${pfID}${p}${getNextDepartment(k)}${auIDs}")});
                                         ikb.Add(new[] {
                                         InlineKeyboardButton.WithCallbackData(text: "Назад",
                                                 callbackData: $"Cancel$Auditory${pfID}"),
@@ -1459,6 +1476,7 @@ namespace TeacherPreffsCollector
                                         response = response
                                             .Remove(response.IndexOf("Выбор аудитории:") + 16, response.Length - response.IndexOf("Выбор аудитории:") - 16)
                                             .Replace("Выбор аудитории:", "*Выбор аудитории:*") + "\n";
+                                        if (auList.Count() == 0) response += "\nПо заданным фильтрам аудиторий не найдено.";
                                         i = 0;
                                         foreach (var au in auList)
                                         {
@@ -1495,7 +1513,7 @@ namespace TeacherPreffsCollector
                                             .Remove(response.IndexOf("Список всех аудиторий:") + 22, response.Length - response.IndexOf("Список всех аудиторий:") - 22)
                                             .Replace("Выбор аудитории:", "*Выбор аудитории:*")
                                             .Replace("Аудитория", "*Аудитория*") + "\n";
-
+                                        if (auList.Count() == 0) response += "\nПо заданным фильтрам аудиторий не найдено.";
                                         i = 0;
                                         foreach (var au in auList)
                                         {
@@ -1503,7 +1521,7 @@ namespace TeacherPreffsCollector
                                             if (selectedAuditoryIDs.Contains(au.ID.ToString())) option = "➖";
                                             else option = "➕";
                                             bRow[i] = InlineKeyboardButton.WithCallbackData(text: $"{option} {getAuditoryInfoShort(au)}",
-                                                callbackData: $"Edit$Auditory${pfID}${cArgs[5]}${au.ID}");
+                                                callbackData: $"Edit$Auditory${pfID}${cArgs[5]}${au.ID}${cArgs[3]}${cArgs[4]}");
                                             i++;
                                             if (i == 3)
                                             {
@@ -1550,17 +1568,27 @@ namespace TeacherPreffsCollector
                                         }
                                     }
 
-                                    if (auList.Count() == 0) response += "По заданным фильтрам аудиторий не найдено.";
-
                                     ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: $"Проектор: {getProjectorInfo(Convert.ToInt32(cArgs[3]))}",
                                                 callbackData: $"Sort$Auditory${pfID}${getNextProjectorCode(Convert.ToInt32(cArgs[3]))}${cArgs[4]}{fifthArg}"),
                                                    InlineKeyboardButton.WithCallbackData(text: $"Корпус: {getDepartmentInfo(Convert.ToInt32(cArgs[4]))}",
                                                 callbackData: $"Sort$Auditory${pfID}${cArgs[3]}${getNextDepartment(Convert.ToInt32(cArgs[4]))}{fifthArg}")});
-
-                                    ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                    if (pfID != -1)
+                                    {
+                                        ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: "Назад",
                                                 callbackData: $"Cancel$Auditory${pfID}"),
                                                    InlineKeyboardButton.WithCallbackData(text: "Сбросить",
                                                 callbackData: $"Choose$Auditory${pfID}$")});
+                                    }
+                                    else
+                                    {
+                                        ikb.Add(new[] {
+                                        InlineKeyboardButton.WithCallbackData(text: "Назад",
+                                                callbackData: $"Cancel$Auditory${pfID}"),
+                                        InlineKeyboardButton.WithCallbackData(text: "Сбросить",
+                                                callbackData: $"Choose$Auditory${pfID}$"),
+                                        InlineKeyboardButton.WithCallbackData(text: "Сохранить",
+                                                callbackData: $"Choose$Auditory${pfID}{fifthArg}")});
+                                    }
                                     break;
                             }
                             break;
