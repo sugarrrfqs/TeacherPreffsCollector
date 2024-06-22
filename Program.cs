@@ -142,7 +142,7 @@ namespace TeacherPreffsCollector
             else response += (pref.Hours - (pref.Hours % 8)).ToString();
             response += "\n\n";
 
-            response += "*Ваши пожелания:*\n";
+            response += "*Ваши требования:*\n";
             if (aud != null) response += "*Аудитория:* " + getAuditoryInfoShort(aud);
             else response += "*Аудитория:* Не задана";
 
@@ -171,7 +171,7 @@ namespace TeacherPreffsCollector
         {
             string response = "";
 
-            response += "*Ваши пожелания:*";
+            response += "*Ваши требования:*";
 
             response += "\nДни недели: ";
             if (tch.Weekdays != null) response += tch.Weekdays;
@@ -264,7 +264,7 @@ namespace TeacherPreffsCollector
         static string getCommandList()
         {
             return "\n/et - Экспортировать данные о преподавателях" +
-                   "\n/ep - Экспортировать данные о пожеланиях" +
+                   "\n/ep - Экспортировать данные о требованиях" +
                    "\n/it - Импортировать данные о преподавателях" +
                    "\n/id - Импортировать данные о дисциплинах" +
                    "\n/changeDirectory$<ВашаДиректорияДляСохранения> - Изменить директорию для импорта-экспорта данных";
@@ -294,7 +294,7 @@ namespace TeacherPreffsCollector
                 {
                     await JsonSerializer.SerializeAsync(f, prefs, jsonSerializerOptions);
                 }
-                response = $"Данные о пожеланиях успешно экспортированы, путь к файлу -\n{new FileInfo(fn).Directory.FullName}";
+                response = $"Данные о требованиях успешно экспортированы, путь к файлу -\n{new FileInfo(fn).Directory.FullName}";
             }
             catch (Exception ex)
             {
@@ -663,7 +663,7 @@ namespace TeacherPreffsCollector
                                     foreach (Preference pf in entities.Preference.Where(x => x.TeacherID == tch.ID).OrderBy(x => x.Groups.Substring(x.Groups.Length - 1)).ThenBy(x => x.DisciplineName).ThenBy(x => x.DisciplineType).ThenBy(x => x.Groups).ThenBy(x => x.Subgroup).ToList())
                                     {
                                         string thisString = getPrefInfo(pf)
-                                              + "\nИзменить пожелания: /preferencesQ" + pf.ID + "\n\n\n\n";
+                                              + "\nИзменить требования: /preferencesQ" + pf.ID + "\n\n\n\n";
                                         if (splittedResponse.Count == 0 || splittedResponse[splittedResponse.Count - 1].Length > chunkSize) splittedResponse.Add(thisString);
                                         else
                                         {
@@ -678,9 +678,9 @@ namespace TeacherPreffsCollector
                                         response =
                                             $"Вы можете задать аудитории, дни недели и время занятий \"по умолчанию\", " +
                                             $"эти значения будут применены для всех ваших дисциплин, " +
-                                            $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
+                                            $"но Вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
                                             getTeacherInfo(tch) +
-                                            $"\n\nЧто вы хотите изменить?";
+                                            $"\n\nЧто Вы хотите изменить?";
                                         ikb.Add(new[]
                                                 {
                                                     InlineKeyboardButton.WithCallbackData(text: "Аудитории", callbackData: $"Edit$Auditory$-1"),
@@ -699,7 +699,7 @@ namespace TeacherPreffsCollector
                                                 response =
                                                     "*Вы редактируете информацию о следующей дисциплине:*\n"
                                                     + getPrefInfo(pref)
-                                                    + "\n\nЧто вы хотите изменить?";
+                                                    + "\n\nЧто Вы хотите изменить?";
                                                 ikb.Add(new[]
                                                 {
                                                     InlineKeyboardButton.WithCallbackData(text: "Аудиторию", callbackData: $"Edit$Auditory${pfID}"),
@@ -723,8 +723,8 @@ namespace TeacherPreffsCollector
 
                                 case "/help":
                                     response = "Полный список команд:" +
-                                    "\n/preferences - Задать пожелания \"по умолчанию\"" +
-                                    "\n/disciplines - Получить список ваших дисциплин и пожеланий" +
+                                    "\n/preferences - Задать требования \"по умолчанию\"" +
+                                    "\n/disciplines - Получить список ваших дисциплин и требований" +
                                     "\n/logout - Выйти из аккаунта";
                                     break;
 
@@ -835,12 +835,12 @@ namespace TeacherPreffsCollector
                             switch (cArgs[1])
                             {
                                 case "Auditory":
-                                    //splittedResponse.Add(callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор аудитории:*"));
-                                    //response = callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор аудитории:*");
+                                    //splittedResponse.Add(callbackQuery.Message.Text.Replace("Что Вы хотите изменить?", "*Выбор аудитории:*"));
+                                    //response = callbackQuery.Message.Text.Replace("Что Вы хотите изменить?", "*Выбор аудитории:*");
                                     
                                     if (pfID != -1)
                                     {
-                                        response = callbackQuery.Message.Text.Replace("Что вы хотите изменить?", "*Выбор аудитории:*") + "\n";
+                                        response = callbackQuery.Message.Text.Replace("Что Вы хотите изменить?", "*Выбор аудитории:*") + "\n";
                                         pref = entities.Preference.Single(x => x.ID == pfID);
                                         auList = entities.Auditory.Where(x => x.Capacity + x.Capacity / 10 >= pref.StudentsCount).OrderBy(x => x.Department).ThenBy(x => x.Number).ToList();
 
@@ -943,7 +943,7 @@ namespace TeacherPreffsCollector
                                         //            "Чтобы автоматическое заполнение пожеланий для дисциплин работало лучше, " +
                                         //            "*в первую очередь указывайте аудитории для практик и лабораторных, " +
                                         //            "потом только аудитории для лекций*\n" +
-                                        //            "Обратите внимание, что если выбранная вами аудитория не подходит по вместимости для занятия, " +
+                                        //            "Обратите внимание, что если выбранная Вами аудитория не подходит по вместимости для занятия, " +
                                         //            "то будет выбрана следующая по приоритетности подходящая аудитория.\n\n\n*Выбранные аудитории:*";
                                         //for (i = 0; i < selectedAuditories.Count; i++) response += getAuditoryInfoShortest(selectedAuditories[i]);
                                         if (cArgs.Length == 7)
@@ -997,7 +997,7 @@ namespace TeacherPreffsCollector
                                         "вторая будет следующей по предпочтительности и т. д.\n" +
                                         "*В первую очередь указывайте аудитории для практик и лабораторных, " +
                                         "потом только аудитории для лекций*\n" +
-                                        "Если выбранная вами аудитория не подходит по вместимости для занятия, " +
+                                        "Если выбранная Вами аудитория не подходит по вместимости для занятия, " +
                                         "то будет выбрана следующая по приоритетности подходящая аудитория.\n\n\n*Выбранные аудитории:*\n";
                                         
                                         //response += "\n\n\n*Выбранные аудитории:*\n";
@@ -1042,7 +1042,7 @@ namespace TeacherPreffsCollector
 
                                     response += callbackQuery.Message.Text
                                         .Replace("Выбор частоты:", "*Выбор частоты:*")
-                                        .Replace("Что вы хотите изменить?", $"*Выбор частоты:*\nУ этой дисциплины всего {hours} часов за семестр.")
+                                        .Replace("Что Вы хотите изменить?", $"*Выбор частоты:*\nУ этой дисциплины всего {hours} часов за семестр.")
                                         .Replace("Выберите распределение на первую половину семестра:", "")
                                         .Replace("Выберите распределение на вторую половину семестра:", "")
                                         .Replace("      Выберите количество часов по первым неделям:", "")
@@ -1239,10 +1239,10 @@ namespace TeacherPreffsCollector
                                     {
                                         response += callbackQuery.Message.Text
                                             .Replace("Выбор времени:", "*Выбор времени:*")
-                                            .Replace("Что вы хотите изменить?", "*Выбор времени:\n*")
-                                            .Replace("Выберите конец удобного вам промежутка времени занятий:", "");
+                                            .Replace("Что Вы хотите изменить?", "*Выбор времени:\n*")
+                                            .Replace("Выберите конец удобного Вам промежутка времени занятий:", "");
                                         if (response.IndexOf("Выбранное") >= 0) response = response.Remove(response.IndexOf("Выбранное"), response.Length - response.IndexOf("Выбранное"));
-                                        response += "Выберите *начало* удобного вам промежутка времени занятий:";
+                                        response += "Выберите *начало* удобного Вам промежутка времени занятий:";
                                         foreach (var t in stime)
                                         {
                                             ikb.Add(new[] {InlineKeyboardButton.WithCallbackData(text: t,
@@ -1259,7 +1259,7 @@ namespace TeacherPreffsCollector
                                         int beg = Convert.ToInt32(cArgs[3]);
                                         response += callbackQuery.Message.Text
                                             .Replace("начало", "*конец*")
-                                            .Replace("Выбор времени:", $"*Выбор времени:*\nВыбранное вами начало: {stime[beg]}");
+                                            .Replace("Выбор времени:", $"*Выбор времени:*\nВыбранное Вами начало: {stime[beg]}");
 
                                         for (i = beg; i < etime.Length; i++)
                                         {
@@ -1273,7 +1273,7 @@ namespace TeacherPreffsCollector
 
                                 case "Weekdays":
                                     response += callbackQuery.Message.Text
-                                            .Replace("Что вы хотите изменить?", "*Выбор дней недели:\n*Выбранные дни:\n");
+                                            .Replace("Что Вы хотите изменить?", "*Выбор дней недели:\n*Выбранные дни:\n");
                                     string[] sw = new string[0];
                                     bool[] selectedWeekdays = { false, false, false, false, false, false };
 
@@ -1548,7 +1548,7 @@ namespace TeacherPreffsCollector
                                                     "вторая будет следующей по предпочтительности и т. д.\n" +
                                                     "*В первую очередь указывайте аудитории для практик и лабораторных, " +
                                                     "потом только аудитории для лекций*\n" +
-                                                    "Если выбранная вами аудитория не подходит для занятия по вместимости, " +
+                                                    "Если выбранная Вами аудитория не подходит для занятия по вместимости, " +
                                                     "то будет выбрана следующая по приоритетности подходящая аудитория.\n\n\n*Выбранные аудитории:*\n";
 
                                         //response += "\n\n\n*Выбранные аудитории:*\n";
@@ -1602,7 +1602,7 @@ namespace TeacherPreffsCollector
                     if (clear)
                     {
                         response = callbackQuery.Message.Text.Remove(callbackQuery.Message.Text.IndexOf("Выбор"), callbackQuery.Message.Text.Length - callbackQuery.Message.Text.IndexOf("Выбор"))
-                                    + "Что вы хотите изменить?";
+                                    + "Что Вы хотите изменить?";
                     }
                     if (updateInfo)
                     {
@@ -1610,16 +1610,16 @@ namespace TeacherPreffsCollector
                             response =
                                 "*Вы редактируете информацию о следующей дисциплине:*\n"
                                 + getPrefInfo(pref) +
-                                "\n\nЧто вы хотите изменить?";
+                                "\n\nЧто Вы хотите изменить?";
                         else
                         {
                             if (tch == null) foreach (var t in teachers) if (Convert.ToInt64(t.ChatID) == callbackQuery.Message.Chat.Id) tch = t;
                             response =
                                 $"Вы можете задать аудитории, дни недели и время занятий \"по умолчанию\", " +
                                 $"эти значения будут применены для всех ваших дисциплин, " +
-                                $"но вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
+                                $"но Вы всегда сможете изменить их для каждой дисциплины по отдельности, используя /disciplines\n\n" +
                                 getTeacherInfo(tch) +
-                                $"\n\nЧто вы хотите изменить?";
+                                $"\n\nЧто Вы хотите изменить?";
                         }
                     }
                     if (clear || updateInfo)
