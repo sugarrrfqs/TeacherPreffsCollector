@@ -114,6 +114,14 @@ namespace TeacherPreffsCollector
                         }
                         break;
 
+                    case "/resetDirectory":
+                        config.AppSettings.Settings["fileDirectory"].Value = "";
+                        config.Save();
+                        ConfigurationManager.RefreshSection("appSettings");
+                        fileDirectory = config.AppSettings.Settings["fileDirectory"].Value;
+                        Console.WriteLine($"Выбор директории для сохранения сброшен");
+                        break;
+
                     case "/help":
                         Console.WriteLine(getCommandList());
                         break;
@@ -267,7 +275,8 @@ namespace TeacherPreffsCollector
                    "\n/ep - Экспортировать данные о требованиях" +
                    "\n/it - Импортировать данные о преподавателях" +
                    "\n/id - Импортировать данные о дисциплинах" +
-                   "\n/changeDirectory$<ВашаДиректорияДляСохранения> - Изменить директорию для импорта-экспорта данных";
+                   "\n/changeDirectory$<ВашаДиректорияДляСохранения> - Изменить директорию для импорта-экспорта данных" +
+                   "\n/resetDirectory - Сбросить выбор директории";
         }
 
         async static Task<string> ExportPreferences()
